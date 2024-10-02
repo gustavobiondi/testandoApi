@@ -10,12 +10,12 @@ class ComandaScreen extends React.Component {
       data: data.filter(item => item.comanda === fcomanda),
       fcomanda,
       preco,
-      valor_pago: 0.0, // Valor inicial do valor_pago
+      valor_pago: null, // Valor inicial do valor_pago
     };
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://127.0.0.1:5000');
 
     this.socket.on('new_order', (newOrder) => {
       if (newOrder.comanda === this.state.fcomanda) {
