@@ -2,8 +2,8 @@ from cs50 import SQL
 
 db = SQL('sqlite:///dados.db')
 
-dados = db.execute('SELECT * FROM comandas')
+dados = db.execute('SELECT * FROM pedidos')
 print(dados)
-db.execute('DROP TABLE comandas')
-dados = db.execute('SELECT * FROM comandas')
+db.execute('DELETE FROM pedidos WHERE comanda = ?','1')
+dados = db.execute('SELECT * FROM pedidos')
 print(dados)

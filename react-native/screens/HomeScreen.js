@@ -13,6 +13,8 @@ export default class HomeScreen extends React.Component {
       fcomanda: '',
       categoria: 'produto',
       pedido_filtrado: [],
+      quantidadeSelecionada:[],
+      pedidos_Selecionados:[],
       showPedido: false,
       showQuantidade: false,
       quantidade: 1,
@@ -24,16 +26,10 @@ export default class HomeScreen extends React.Component {
     this.socket = io('http://127.0.0.1:5000');
 
     // Ouvir eventos de dados iniciais
-    this.socket.on('initial_data', (dados) => {
+    this.socket.on('dados_atualizados', ({dados}) => {
       this.setState({ data: dados });
     });
 
-    // Ouvir novos pedidos
-    this.socket.on('new_order', (newOrder) => {
-      this.setState((prevState) => ({
-        data: [...prevState.data, newOrder]
-      }));
-    });
 
     // Ouvir comanda deletada
     this.socket.on('comanda_deleted', ({ fcomanda }) => {
@@ -43,9 +39,9 @@ export default class HomeScreen extends React.Component {
     });
 
     // Ouvir preço calculado
-    this.socket.on('preco', ({ preco }) => {
-      this.setState({ preco });
-      this.props.navigation.navigate('ComandaScreen', { data: this.state.data, fcomanda: this.state.fcomanda, preco });
+    this.socket.on('preco', ( data ) => {
+      this.setState({ preco: data.preco });
+      this.props.navigation.navigate('ComandaScreen', { data: data.dados, fcomanda: this.state.fcomanda, preco:this.state.preco });
     });
 
     // Ouvir erros
@@ -72,7 +68,12 @@ export default class HomeScreen extends React.Component {
   }
 
   changePedido = (pedido) => {
-    this.setState({ pedido, showPedido: true });
+    if (pedido === ''){
+      this.setState({ pedido, showPedido:false})
+    }
+    else{
+      this.setState({pedido, showPedido: true });
+    }
   
     // Emitir o evento de pesquisa
     this.socket.emit('pesquisa', pedido);
@@ -87,13 +88,16 @@ export default class HomeScreen extends React.Component {
   }
 
   sendData = () => {
-    const { comand, pedido, categoria } = this.state;
-    if (comand && pedido && categoria) {
-      this.socket.emit('insert_order', { comanda: comand, pedido, categoria });
+    const { comand, pedidosSelecionados, quantidadeSelecionada } = this.state;
+    if (comand && pedidosSelecionados && quantidadeSelecionada) {
+      this.socket.emit('insert_order', { comanda: comand, pedidosSelecionados, quantidadeSelecionada});
       this.setState({
         comand: '',
         pedido: '',
-        categoria: 'produto',
+        pedidosSelecionados:[],
+        quantidadeSelecionada:[],
+        quantidade:1,
+        showQuantidade:false,
       });
     } else {
       console.warn('Por favor, preencha todos os campos.');
@@ -104,12 +108,39 @@ export default class HomeScreen extends React.Component {
   getCardapio = () => {
     const { fcomanda } = this.state;
     if (fcomanda) {
-      console.log('Enviando comanda:', fcomanda);
-      this.socket.emit('get_cardapio', { fcomanda });
+        console.log('Enviando comanda:', fcomanda);
+        this.socket.emit('get_cardapio', { fcomanda });
+
+        this.socket.on('preco', ( data )  => {
+            this.props.navigation.navigate('ComandaScreen', {
+                data: data.dados,
+                fcomanda: this.state.fcomanda,
+                preco: data.preco,
+            });
+        });
     } else {
-      console.warn('Por favor, insira a comanda.');
+        console.warn('Por favor, insira a comanda.');
     }
+}
+
+
+pagarParcial = () => {
+  const { valor_pago, fcomanda, preco } = this.state;
+  const valorNum = parseFloat(valor_pago);
+  
+  if (!isNaN(valorNum) && valorNum > 0 && valorNum <= preco) {
+    this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda: fcomanda });
+    
+    this.setState((prevState) => ({
+      preco: prevState.preco - valorNum,
+      valor_pago: ''
+    }));
+  } else {
+    console.warn('Insira um valor válido para pagamento parcial.');
   }
+}
+
+
   //SELECIONA O PEDIDO
   selecionarPedido = (pedido) => {
     this.setState({
@@ -121,33 +152,37 @@ export default class HomeScreen extends React.Component {
     
   }
 
-  aumentar_quantidade= (quantidade) =>{
+  aumentar_quantidade= () =>{
     this.setState(prevState => ({
         quantidade: prevState.quantidade + 1
     }))
     
 }
 
-diminuir_quantidade= (quantidade) =>{
-    if (quantidade > 1){
+diminuir_quantidade= () =>{
         this.setState(prevState => ({
             quantidade: prevState.quantidade - 1
         }))
     }
-  }
 
 mudar_quantidade = (quantidade) =>{
-    if (quantidade > 0){
-        this.setState({
-            quantidade: quantidade
-        })
+    this.setState({
+      quantidade: quantidade
+      })
     }
-    else if (quantidade == 0){
-        this.setState({
-            quantidade: 1
-        })
-    }
-  }
+
+adicionarPedido = () => {
+  const {pedido,quantidade} = this.state
+  this.setState(prevState => ({
+    pedidosSelecionados: prevState.pedidosSelecionados ? [...prevState.pedidosSelecionados, pedido] : [pedido],
+    quantidadeSelecionada: prevState.quantidadeSelecionada ? [...prevState.quantidadeSelecionada, quantidade] : [quantidade],
+    quantidade: 1,
+    showQuantidade: false,
+    pedido: ''
+  }));
+  
+}
+    
 
 
   render() {
@@ -160,6 +195,7 @@ mudar_quantidade = (quantidade) =>{
               value={this.state.pedido}
               style={styles.input}
             />
+            <Button title='Adicionar' onPress={this.adicionarPedido}/>
             {this.state.showPedido && (
             <FlatList //MOSTRAR PEDIDOS DA PESQUISA
               data={this.state.pedido_filtrado}
@@ -182,13 +218,13 @@ mudar_quantidade = (quantidade) =>{
               onPress={this.diminuir_quantidade}
               />
               < TextInput
-              placeholder='1'
               value={this.state.quantidade}
-              onValueChange={this.mudar_quantidade}
+              onChangeText={this.mudar_quantidade}
+              keyboardType='numeric'
               />
               < Button
               title= '+'
-              onPress={this.state.aumentar_quantidade}
+              onPress={this.aumentar_quantidade}
               />
               </View>
             )}

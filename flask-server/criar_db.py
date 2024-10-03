@@ -1,8 +1,8 @@
 from cs50 import SQL
 
 db = SQL('sqlite:///dados.db')
-db.execute('CREATE TABLE IF NOT EXISTS valores_pagos(comanda TEXT UNIQUE,valor_pago FLOAT)')
-db.execute('INSERT INTO valores_pagos (comanda,valor_pago) VALUES (?,?)','1',5)
-dados = db.execute('SELECT * FROM valores_pagos')
+db.execute('CREATE TABLE IF NOT EXISTS pedidos(id INTEGER PRIMARY KEY AUTOINCREMENT,comanda TEXT, pedido TEXT NOT NULL, quantidade FLOAT,extra TEXT,preco FLOAT)')
+db.execute('INSERT INTO pedidos(comanda,pedido,quantidade,extra) VALUES (?,?,?,?)','1','mamae eu quero', '1','bem doce')
+dados = db.execute('SELECT * FROM PEDIDOS')
 print(dados)
 
