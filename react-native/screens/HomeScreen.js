@@ -24,16 +24,10 @@ export default class HomeScreen extends React.Component {
     this.socket = io('http://127.0.0.1:5000');
 
     // Ouvir eventos de dados iniciais
-    this.socket.on('initial_data', (dados) => {
+    this.socket.on('dados_atualizados', ({dados}) => {
       this.setState({ data: dados });
     });
 
-    // Ouvir novos pedidos
-    this.socket.on('new_order', (newOrder) => {
-      this.setState((prevState) => ({
-        data: [...prevState.data, newOrder]
-      }));
-    });
 
     // Ouvir comanda deletada
     this.socket.on('comanda_deleted', ({ fcomanda }) => {
@@ -72,7 +66,12 @@ export default class HomeScreen extends React.Component {
   }
 
   changePedido = (pedido) => {
-    this.setState({ pedido, showPedido: true });
+    if (pedido === ''){
+      this.setState({ pedido, showPedido:false})
+    }
+    else{
+      this.setState({pedido, showPedido: true });
+    }
   
     // Emitir o evento de pesquisa
     this.socket.emit('pesquisa', pedido);
@@ -87,13 +86,14 @@ export default class HomeScreen extends React.Component {
   }
 
   sendData = () => {
-    const { comand, pedido, categoria } = this.state;
-    if (comand && pedido && categoria) {
-      this.socket.emit('insert_order', { comanda: comand, pedido, categoria });
+    const { comand, pedido, quantidade } = this.state;
+    if (comand && pedido && quantidade) {
+      this.socket.emit('insert_order', { comanda: comand, pedido, quantidade});
       this.setState({
         comand: '',
         pedido: '',
-        categoria: 'produto',
+        quantidade:1,
+        showQuantidade:false,
       });
     } else {
       console.warn('Por favor, preencha todos os campos.');
@@ -104,12 +104,39 @@ export default class HomeScreen extends React.Component {
   getCardapio = () => {
     const { fcomanda } = this.state;
     if (fcomanda) {
-      console.log('Enviando comanda:', fcomanda);
-      this.socket.emit('get_cardapio', { fcomanda });
+        console.log('Enviando comanda:', fcomanda);
+        this.socket.emit('get_cardapio', { fcomanda });
+
+        // Ouvir o retorno dos pedidos e agrupar os itens duplicados
+        this.socket.on('initial_data', (dados) => {
+            const pedidosAgrupados = dados.reduce((acc, item) => {
+                const pedidoExistente = acc.find(pedido => pedido.pedido === item.pedido);
+                if (pedidoExistente) {
+                    // Se o pedido já existe, somar a quantidade
+                    pedidoExistente.quantidade += item.quantidade;
+                    pedidoExistente.preco += item.preco; // Atualizar o preço total também
+                } else {
+                    // Senão, adicionar o novo pedido
+                    acc.push({ ...item });
+                }
+                return acc;
+            }, []);
+
+            // Atualizar o estado com os pedidos agrupados
+            this.setState({ data: pedidosAgrupados });
+            
+            // Navegar para a tela da comanda com os dados agrupados
+            this.props.navigation.navigate('ComandaScreen', {
+                data: pedidosAgrupados,
+                fcomanda: this.state.fcomanda,
+                preco: this.state.preco
+            });
+        });
     } else {
-      console.warn('Por favor, insira a comanda.');
+        console.warn('Por favor, insira a comanda.');
     }
-  }
+}
+
   //SELECIONA O PEDIDO
   selecionarPedido = (pedido) => {
     this.setState({
@@ -121,33 +148,25 @@ export default class HomeScreen extends React.Component {
     
   }
 
-  aumentar_quantidade= (quantidade) =>{
+  aumentar_quantidade= () =>{
     this.setState(prevState => ({
         quantidade: prevState.quantidade + 1
     }))
     
 }
 
-diminuir_quantidade= (quantidade) =>{
-    if (quantidade > 1){
+diminuir_quantidade= () =>{
         this.setState(prevState => ({
             quantidade: prevState.quantidade - 1
         }))
     }
-  }
 
 mudar_quantidade = (quantidade) =>{
-    if (quantidade > 0){
-        this.setState({
-            quantidade: quantidade
-        })
+    this.setState({
+      quantidade: quantidade
+      })
     }
-    else if (quantidade == 0){
-        this.setState({
-            quantidade: 1
-        })
-    }
-  }
+    
 
 
   render() {
@@ -182,13 +201,13 @@ mudar_quantidade = (quantidade) =>{
               onPress={this.diminuir_quantidade}
               />
               < TextInput
-              placeholder='1'
               value={this.state.quantidade}
-              onValueChange={this.mudar_quantidade}
+              onChangeText={this.mudar_quantidade}
+              keyboardType='numeric'
               />
               < Button
               title= '+'
-              onPress={this.state.aumentar_quantidade}
+              onPress={this.aumentar_quantidade}
               />
               </View>
             )}

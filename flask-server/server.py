@@ -17,8 +17,13 @@ CORS(app)
 @socketio.on('connect')
 def handle_connect():
     print('Cliente conectado')
-    dados = db.execute('SELECT * FROM comandas')
-    emit('initial_data', dados, broadcast=True)
+    dados_pedido = db.execute('SELECT * FROM pedidos')
+    dados_comanda = db.execute('''
+            SELECT pedido, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+            FROM pedidos GROUP BY pedido
+        ''')
+    emit('initial_data', dados_pedido, broadcast=True)
+    emit('dados_atualizados', dados_comanda, broadcast=True)
 
 # Manipulador de desconexão
 
@@ -35,20 +40,27 @@ def handle_insert_order(data):
     try:
         comanda = data.get('comanda')
         pedido = data.get('pedido')
-        categoria = data.get('categoria')
-        print(f"Comanda: {comanda}, Pedido: {pedido}, Categoria: {categoria}")
-        db.execute('INSERT INTO comandas (comanda, pedido, categoria) VALUES (?, ?, ?)',
-                   comanda, pedido, categoria)
+        quantidade = data.get('quantidade')
+        preco_unitario = db.execute(
+            'SELECT preco FROM cardapio WHERE item = ?', pedido)
+
+        db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco) VALUES (?, ?, ?,?)',
+                   comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade))
+        # Emitir evento com o novo pedido
         emit('new_order', {'comanda': comanda, 'pedido': pedido,
-             'categoria': categoria}, broadcast=True)
-        pagos = db.execute(
-            'SELECT comanda FROM valores_pagos WHERE comanda = ?', comanda)
-        if not pagos:
-            db.execute(
-                'INSERT INTO valores_pagos (comanda, valor_pago) VALUES(?, ?)', comanda, 0)
+                           'quantidade': quantidade, 'preco': preco_unitario[0]['preco']*quantidade}, broadcast=True)
+
+        dados = db.execute('''
+            SELECT pedido, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+            FROM pedidos GROUP BY pedido
+        ''')
+        print(dados)
+        emit('dados_atualizados', dados)
+
     except Exception as e:
         print("Erro ao inserir ordem:", e)
         emit('error', {'message': str(e)})
+
 
 # Manipulador para apagar uma comanda
 
@@ -57,7 +69,7 @@ def handle_insert_order(data):
 def handle_delete_comanda(data):
     try:
         comanda = data.get('fcomanda')
-        db.execute('DELETE FROM comandas WHERE comanda = ?', (comanda))
+        db.execute('DELETE FROM pedidos WHERE comanda = ?', (comanda))
         db.execute('DELETE FROM valores_pagos WHERE comanda = ?', comanda)
         emit('comanda_deleted', {'fcomanda': comanda}, broadcast=True)
     except Exception as e:
@@ -101,21 +113,17 @@ def handle_get_cardapio(data):
         fcomanda = data.get('fcomanda')
         cardapio = db.execute('SELECT * FROM cardapio')
         comandas = db.execute(
-            'SELECT * FROM comandas WHERE comanda = ?', fcomanda)
+            'SELECT * FROM pedidos WHERE comanda = ?', fcomanda)
         valor_pago = db.execute(
             'SELECT valor_pago FROM valores_pagos WHERE comanda = ?', fcomanda)
 
-        preco = 0
-        for row in comandas:
-            item = row['pedido']
-            for j in cardapio:
-                if j['item'] == item:
-                    preco += j['preco']
+        # Emitir os dados mais recentes da comanda e atualizar no frontend
 
-        if valor_pago:
-            preco -= float(valor_pago[0]['valor_pago'])
-
-        emit('preco', {'preco': preco})
+        dados = db.execute('''
+            SELECT pedido, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+            FROM pedidos GROUP BY pedido
+        ''')
+        emit('preco', {'preco': 0})
     except Exception as e:
         print("Erro ao calcular preço:", e)
         emit('error', {'message': str(e)})
