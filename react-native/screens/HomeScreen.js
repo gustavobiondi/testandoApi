@@ -13,6 +13,8 @@ export default class HomeScreen extends React.Component {
       fcomanda: '',
       categoria: 'produto',
       pedido_filtrado: [],
+      quantidadeSelecionada:[],
+      pedidos_Selecionados:[],
       showPedido: false,
       showQuantidade: false,
       quantidade: 1,
@@ -29,17 +31,10 @@ export default class HomeScreen extends React.Component {
     });
 
 
-    // Ouvir comanda deletada
-    this.socket.on('comanda_deleted', ({ fcomanda }) => {
-      this.setState((prevState) => ({
-        data: prevState.data.filter(item => item.comanda !== fcomanda)
-      }));
-    });
 
     // Ouvir preço calculado
-    this.socket.on('preco', ({ preco }) => {
-      this.setState({ preco });
-      this.props.navigation.navigate('ComandaScreen', { data: this.state.data, fcomanda: this.state.fcomanda, preco });
+    this.socket.on('preco', ( data ) => {
+      this.setState({ preco: data.preco });
     });
 
     // Ouvir erros
@@ -86,12 +81,14 @@ export default class HomeScreen extends React.Component {
   }
 
   sendData = () => {
-    const { comand, pedido, quantidade } = this.state;
-    if (comand && pedido && quantidade) {
-      this.socket.emit('insert_order', { comanda: comand, pedido, quantidade});
+    const { comand, pedidosSelecionados, quantidadeSelecionada } = this.state;
+    if (comand && pedidosSelecionados && quantidadeSelecionada) {
+      this.socket.emit('insert_order', { comanda: comand, pedidosSelecionados, quantidadeSelecionada});
       this.setState({
         comand: '',
         pedido: '',
+        pedidosSelecionados:[],
+        quantidadeSelecionada:[],
         quantidade:1,
         showQuantidade:false,
       });
@@ -107,35 +104,35 @@ export default class HomeScreen extends React.Component {
         console.log('Enviando comanda:', fcomanda);
         this.socket.emit('get_cardapio', { fcomanda });
 
-        // Ouvir o retorno dos pedidos e agrupar os itens duplicados
-        this.socket.on('initial_data', (dados) => {
-            const pedidosAgrupados = dados.reduce((acc, item) => {
-                const pedidoExistente = acc.find(pedido => pedido.pedido === item.pedido);
-                if (pedidoExistente) {
-                    // Se o pedido já existe, somar a quantidade
-                    pedidoExistente.quantidade += item.quantidade;
-                    pedidoExistente.preco += item.preco; // Atualizar o preço total também
-                } else {
-                    // Senão, adicionar o novo pedido
-                    acc.push({ ...item });
-                }
-                return acc;
-            }, []);
-
-            // Atualizar o estado com os pedidos agrupados
-            this.setState({ data: pedidosAgrupados });
-            
-            // Navegar para a tela da comanda com os dados agrupados
+        this.socket.on('preco', ( data )  => {
             this.props.navigation.navigate('ComandaScreen', {
-                data: pedidosAgrupados,
+                data: data.dados,
                 fcomanda: this.state.fcomanda,
-                preco: this.state.preco
+                preco: data.preco,
             });
         });
     } else {
         console.warn('Por favor, insira a comanda.');
     }
 }
+
+
+pagarParcial = () => {
+  const { valor_pago, fcomanda, preco } = this.state;
+  const valorNum = parseFloat(valor_pago);
+  
+  if (!isNaN(valorNum) && valorNum > 0 && valorNum <= preco) {
+    this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda: fcomanda });
+    
+    this.setState((prevState) => ({
+      preco: prevState.preco - valorNum,
+      valor_pago: ''
+    }));
+  } else {
+    console.warn('Insira um valor válido para pagamento parcial.');
+  }
+}
+
 
   //SELECIONA O PEDIDO
   selecionarPedido = (pedido) => {
@@ -166,6 +163,18 @@ mudar_quantidade = (quantidade) =>{
       quantidade: quantidade
       })
     }
+
+adicionarPedido = () => {
+  const {pedido,quantidade} = this.state
+  this.setState(prevState => ({
+    pedidosSelecionados: prevState.pedidosSelecionados ? [...prevState.pedidosSelecionados, pedido] : [pedido],
+    quantidadeSelecionada: prevState.quantidadeSelecionada ? [...prevState.quantidadeSelecionada, quantidade] : [quantidade],
+    quantidade: 1,
+    showQuantidade: false,
+    pedido: ''
+  }));
+  
+}
     
 
 
@@ -179,6 +188,7 @@ mudar_quantidade = (quantidade) =>{
               value={this.state.pedido}
               style={styles.input}
             />
+            <Button title='Adicionar' onPress={this.adicionarPedido}/>
             {this.state.showPedido && (
             <FlatList //MOSTRAR PEDIDOS DA PESQUISA
               data={this.state.pedido_filtrado}
@@ -203,7 +213,6 @@ mudar_quantidade = (quantidade) =>{
               < TextInput
               value={this.state.quantidade}
               onChangeText={this.mudar_quantidade}
-              keyboardType='numeric'
               />
               < Button
               title= '+'
@@ -234,8 +243,8 @@ mudar_quantidade = (quantidade) =>{
             onChangeText={this.changeFcomanda}
             value={this.state.fcomanda}
             style={[styles.input, { marginTop: 20 }]}
-          />
-          <Button title="Fechar comanda" onPress={this.getCardapio} //BOTÃO QUE VAI FECHAR A COMANDA 
+          />  
+          <Button title="Abrir comanda" onPress={this.getCardapio} //BOTÃO QUE VAI FECHAR A COMANDA 
           />
         </View>
       );

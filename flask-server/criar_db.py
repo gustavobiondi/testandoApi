@@ -1,6 +1,11 @@
 from cs50 import SQL
 
 db = SQL('sqlite:///dados.db')
-comanda = 'comanda'
-dados = db.execute('SELECT * FROM pedidos')
+# Criar a tabela 'estoque'
+dados = db.execute('''
+    SELECT * FROM estoque
+        
+    ''')
 print(dados)
+
+print("Dados importados com sucesso!")

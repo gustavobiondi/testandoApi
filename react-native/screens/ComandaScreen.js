@@ -7,7 +7,7 @@ class ComandaScreen extends React.Component {
     super(props);
     const { data, fcomanda, preco } = this.props.route.params;
     this.state = {
-      data: data.filter(item => item.comanda === fcomanda),
+      data,
       fcomanda,
       preco,
       valor_pago: '', // Valor inicial vazio para garantir um controle adequado
@@ -18,9 +18,12 @@ class ComandaScreen extends React.Component {
     this.socket = io('http://127.0.0.1:5000');
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
-    this.socket.on('dados_atualizados', ({ dados }) => {
-      this.setState({ data: dados });
+
+    this.socket.on('preco', ( data ) => {
+      this.setState({ data: data.dados, preco:data.preco });
     });
+    
+  
 
     this.socket.on('comanda_deleted', ({ fcomanda }) => {
       if (fcomanda === this.state.fcomanda) {
@@ -86,13 +89,13 @@ class ComandaScreen extends React.Component {
 
         <View style={styles.summary}>
           <Text style={styles.totalText}>PREÇO TOTAL</Text>
-          <Text style={styles.totalValue}>{preco.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{this.state.preco}</Text>
           <Button title='Tudo Pago' onPress={this.apagarComanda} />
 
           <TextInput
             placeholder="Quanto?"
             onChangeText={this.changeValor}
-            value={valor_pago}
+            value={this.state.valor_pago}
             keyboardType="numeric"
             style={styles.input}
           />

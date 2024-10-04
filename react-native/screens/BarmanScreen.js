@@ -11,11 +11,11 @@ export default class BarmanScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://127.0.0.1:5000');
 
     // Ouvir eventos de dados iniciais
-    this.socket.on('initial_data', (dados) => {
-      this.setState({ data: dados.filter(item => item.categoria === 'drink') });
+    this.socket.on('', (dados) => {
+      this.setState({ data: dados.dados_pedidos.filter(item => item.categoria === 'drink') });
     });
 
     // Ouvir novos pedidos em tempo real
