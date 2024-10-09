@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Text, StyleSheet } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
 import io from 'socket.io-client';
 
 export default class BarmanScreen extends React.Component {
@@ -7,39 +7,24 @@ export default class BarmanScreen extends React.Component {
     super(props);
     this.state = {
       data: [],
+      
     };
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://127.0.0.1:5000');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
-      this.setState({ data: dados.filter(item => item.categoria === 'drink') });
+      this.setState({ data: dados.dados_pedido.filter(item => item.categoria === '2') });
     });
 
-    // Ouvir novos pedidos em tempo real
-    this.socket.on('new_order', (newOrder) => {
-      if (newOrder.categoria === 'drink') {
-        this.setState((prevState) => ({
-          data: [...prevState.data, newOrder]
-        }));
-      }
-    });
 
-    // Ouvir quando uma comanda for deletada
-    this.socket.on('comanda_deleted', ({ fcomanda }) => {
-      this.setState((prevState) => ({
-        data: prevState.data.filter(item => item.comanda !== fcomanda)
-      }));
-    });
   }
-
   componentWillUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
+    this.socket.off('initial_data');
   }
+
 
   render() {
     return (
@@ -54,6 +39,7 @@ export default class BarmanScreen extends React.Component {
             <View style={styles.tableRow}>
               <Text style={styles.itemText}>{item.comanda}</Text>
               <Text style={styles.itemText}>{item.pedido}</Text>
+              <Button title='Começar'/>
             </View>
           )}
           keyExtractor={(item, index) => index.toString()}

@@ -17,6 +17,7 @@ export default class HomeScreen extends React.Component {
       pedidos_Selecionados:[],
       showPedido: false,
       showQuantidade: false,
+      showPedidoSelecionado:false,
       quantidade: 1,
     };
   }
@@ -31,17 +32,10 @@ export default class HomeScreen extends React.Component {
     });
 
 
-    // Ouvir comanda deletada
-    this.socket.on('comanda_deleted', ({ fcomanda }) => {
-      this.setState((prevState) => ({
-        data: prevState.data.filter(item => item.comanda !== fcomanda)
-      }));
-    });
 
     // Ouvir preço calculado
     this.socket.on('preco', ( data ) => {
       this.setState({ preco: data.preco });
-      this.props.navigation.navigate('ComandaScreen', { data: data.dados, fcomanda: this.state.fcomanda, preco:this.state.preco });
     });
 
     // Ouvir erros
@@ -58,9 +52,10 @@ export default class HomeScreen extends React.Component {
   }
 
   componentWillUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
+    this.socket.off('dados_atualizados')
+    this.socket.off('preco')
+    this.socket.off('error')
+    this.socket.off('pedidos')
   }
 
   changeComanda = (comand) => {
@@ -88,7 +83,7 @@ export default class HomeScreen extends React.Component {
   }
 
   sendData = () => {
-    const { comand, pedidosSelecionados, quantidadeSelecionada } = this.state;
+    const { comand, pedidosSelecionados, quantidadeSelecionada, pedido, quantidade } = this.state;
     if (comand && pedidosSelecionados && quantidadeSelecionada) {
       this.socket.emit('insert_order', { comanda: comand, pedidosSelecionados, quantidadeSelecionada});
       this.setState({
@@ -98,8 +93,20 @@ export default class HomeScreen extends React.Component {
         quantidadeSelecionada:[],
         quantidade:1,
         showQuantidade:false,
+        showPedidoSelecionado:false,
       });
-    } else {
+    }
+    else if (comand && pedido && quantidade){
+      this.socket.emit('insert_order', {comanda: comand, pedidosSelecionados:[pedido],  quantidadeSelecionada:[quantidade]})
+      this.setState({
+        comand: '',
+        pedido:'',
+        quantidade:1,
+        showQuantidade:false,
+        showPedidoSelecionado:false,
+      })
+    }
+    else{
       console.warn('Por favor, preencha todos os campos.');
     }
   }
@@ -178,25 +185,78 @@ adicionarPedido = () => {
     quantidadeSelecionada: prevState.quantidadeSelecionada ? [...prevState.quantidadeSelecionada, quantidade] : [quantidade],
     quantidade: 1,
     showQuantidade: false,
-    pedido: ''
+    pedido: '',
+    showPedidoSelecionado:true
+  
   }));
   
 }
-    
+
+removerPedidoSelecionado(index){
+  this.setState(prevState=>{
+    const quantidadeAtualizada = prevState.quantidadeSelecionada
+
+  if (quantidadeAtualizada[index]>1){
+    quantidadeAtualizada[index]-=1
+    return{
+      quantidadeSelecionada:quantidadeAtualizada
+    }
+  }
+  else{
+    quantidadeAtualizada.splice(index,1)
+    const pedidosAtualizados = prevState.pedidosSelecionados.filter((item,i)=> i!==index)
+    return{
+      pedidosSelecionados:pedidosAtualizados
+    }
+  }
+
+})
+}
+adicionarPedidoSelecionado = (index) => {
+  this.setState(prevState=>{
+    const quantidadeAtualizada = prevState.quantidadeSelecionada
+
+  
+    quantidadeAtualizada[index]+=1
+    return{
+      quantidadeSelecionada:quantidadeAtualizada
+    }
+  })
+
+}
 
 
   render() {
       return (
         <View style={styles.container}>
-          <KeyboardAvoidingView behavior="padding" style={{ width: '80%' }}>
+          <View style={[styles.itemContainer, { flexDirection: 'row' }]}>
             <TextInput //MOSTRA NA TELA "DIGITE O PEDIDO"
               placeholder="Digite o pedido"
               onChangeText={this.changePedido}
               value={this.state.pedido}
               style={styles.input}
             />
+          {this.state.showQuantidade && (
+            <View     style={[styles.itemContainer, { flexDirection: 'row' }]}     //MOSTRAR QUANTIDADE
+            >
+            < Button
+              title= '-'
+              onPress={this.diminuir_quantidade}
+              />
+              < TextInput
+              value={this.state.quantidade}
+              onChangeText={this.mudar_quantidade}
+              />
+              < Button
+              title= '+'
+              onPress={this.aumentar_quantidade}
+              />
+              </View>
+            )}
             <Button title='Adicionar' onPress={this.adicionarPedido}/>
+            </View>
             {this.state.showPedido && (
+              <View style={styles.container}>
             <FlatList //MOSTRAR PEDIDOS DA PESQUISA
               data={this.state.pedido_filtrado}
               keyExtractor={(item, index) => index.toString()}
@@ -209,32 +269,15 @@ adicionarPedido = () => {
                 </TouchableOpacity>
               )}
             />
+            </View>
             )}
-            {this.state.showQuantidade && (
-            <View          //MOSTRAR QUANTIDADE
-            >
-            < Button
-              title= '-'
-              onPress={this.diminuir_quantidade}
-              />
-              < TextInput
-              value={this.state.quantidade}
-              onChangeText={this.mudar_quantidade}
-              keyboardType='numeric'
-              />
-              < Button
-              title= '+'
-              onPress={this.aumentar_quantidade}
-              />
-              </View>
-            )}
+            
             <TextInput //DIGITAR COMANDA DO PEDIDO FEITO
               placeholder="Comanda"
               onChangeText={this.changeComanda}
               value={this.state.comand}
               style={styles.input}
             />
-          </KeyboardAvoidingView>
           <Picker 
             selectedValue={this.state.categoria}
             onValueChange={this.changeCategoria}
@@ -246,13 +289,40 @@ adicionarPedido = () => {
           </Picker>
           <Button title="Enviar pedido" onPress={this.sendData} // BOTÃO DE ENVIAR PEDIDO
           />
+          {this.state.showPedidoSelecionado && (
+            <View style={[styles.itemContainer, { flexDirection: 'row' }]}>
+            <FlatList 
+              data={this.state.pedidosSelecionados}
+              renderItem={({item})=>{
+                console.warn(item)
+                return(
+                <View >
+                  <Text>{item}  </Text>
+                </View>
+                )
+              }}  
+            />
+            <FlatList 
+              data={this.state.quantidadeSelecionada}
+              renderItem={({item,index})=>{
+                return(
+                  <View style={[styles.itemContainer, { flexDirection: 'row' }]}>
+                    <Text>{item}</Text>
+                    <Button title='-' color={'red'} onPress={()=>this.removerPedidoSelecionado(index)}/>
+                    <Button title='+' onPress={()=>this.adicionarPedidoSelecionado(index)} />
+                  </View>
+                )
+              }}
+            />
+            </View>
+          )}
           <TextInput //ESCOLHER COMANDA QUE QUER FECHAR
             placeholder="Qual comanda?"
             onChangeText={this.changeFcomanda}
             value={this.state.fcomanda}
             style={[styles.input, { marginTop: 20 }]}
-          />
-          <Button title="Fechar comanda" onPress={this.getCardapio} //BOTÃO QUE VAI FECHAR A COMANDA 
+          />  
+          <Button title="Abrir comanda" onPress={this.getCardapio} //BOTÃO QUE VAI FECHAR A COMANDA 
           />
         </View>
       );

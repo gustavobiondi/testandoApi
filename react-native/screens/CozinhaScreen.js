@@ -1,58 +1,59 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
 import io from 'socket.io-client';
 
-export default function Cozinha() {
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
-    const socket = io('http://192.168.15.16:5000');
-
-    // Receber dados iniciais
-    socket.on('initial_data', (dados) => {
-      setData(dados.filter(item => item.categoria === 'cozinha'));
-    });
-
-    // Receber novos pedidos em tempo real
-    socket.on('new_order', (newOrder) => {
-      if (newOrder.categoria === 'cozinha') {
-        setData((prevData) => [...prevData, newOrder]);
-      }
-    });
-
-    // Quando a comanda for deletada
-    socket.on('comanda_deleted', ({ fcomanda }) => {
-      setData((prevData) => prevData.filter(item => item.comanda !== fcomanda));
-    });
-
-    return () => {
-      socket.disconnect();
+export default class Cozinha extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: [],
+      
     };
-  }, []);
+  }
 
-  return (
-    <View>
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.comanda}
-        renderItem={({ item }) => (
-          <View style={styles.tableRow}>
-            <Text style={styles.itemText}>{item.comanda}</Text>
-            <Text style={styles.itemText}>{item.pedido}</Text>
-          </View>
-        )}
-        ListHeaderComponent={
-          <View style={styles.tableHeader}>
-            <Text style={styles.headerText}>Comanda</Text>
-            <Text style={styles.headerText}>Pedido</Text>
-          </View>
-        }
-      />
-    </View>
-  );
+  componentDidMount() {
+    this.socket = io('http://127.0.0.1:5000');
+
+    // Ouvir eventos de dados iniciais
+    this.socket.on('initial_data', (dados) => {
+      this.setState({ data: dados.dados_pedido.filter(item => item.categoria === '3') });
+    });
+
+
+  }
+  componentWillUnmount() {
+    this.socket.off('initial_data');
+  }
+
+
+  render() {
+    return (
+      <View style={styles.container}>
+        <View style={styles.tableHeader}>
+          <Text style={styles.headerText}>Comanda</Text>
+          <Text style={styles.headerText}>Pedido</Text>
+        </View>
+        <FlatList
+          data={this.state.data}
+          renderItem={({ item }) => (
+            <View style={styles.tableRow}>
+              <Text style={styles.itemText}>{item.comanda}</Text>
+              <Text style={styles.itemText}>{item.pedido}</Text>
+              <Button title='Começar'/>
+            </View>
+          )}
+          keyExtractor={(item, index) => index.toString()}
+        />
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 10,
+  },
   tableHeader: {
     flexDirection: 'row',
     paddingVertical: 10,

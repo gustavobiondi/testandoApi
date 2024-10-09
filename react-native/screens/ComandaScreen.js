@@ -11,6 +11,8 @@ class ComandaScreen extends React.Component {
       fcomanda,
       preco,
       valor_pago: '', // Valor inicial vazio para garantir um controle adequado
+      guardarValores:[],
+      showBotoes:false,
     };
   }
 
@@ -19,11 +21,13 @@ class ComandaScreen extends React.Component {
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
 
-
     this.socket.on('preco', ( data ) => {
+      if (data.comanda === this.state.fcomanda){
       this.setState({ data: data.dados, preco:data.preco });
+      }
     });
     
+  
 
     this.socket.on('comanda_deleted', ({ fcomanda }) => {
       if (fcomanda === this.state.fcomanda) {
@@ -37,9 +41,9 @@ class ComandaScreen extends React.Component {
   }
 
   componentWillUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
+    this.socket.off('preco')
+    this.socket.off('comanda_deleted')
+    this.socket.on('error')
   }
 
   apagarComanda = () => {
@@ -65,23 +69,89 @@ class ComandaScreen extends React.Component {
       console.warn('Insira um valor válido para pagamento parcial.');
     }
   }
+
+  aparecerBotoes = () =>{
+    const copia_valores = JSON.parse(JSON.stringify(this.state.data))
+    this.setState({
+      guardarValores:copia_valores,
+      showBotoes:true
+    })
+
+  }
+
+
+  apagarPedidos = (index)=>{
+    this.setState(prevState=>{
+      const quantidadeAtualizada = prevState.data
+      quantidadeAtualizada[index]['quantidade']-=1
+      return{
+        data:quantidadeAtualizada
+      }
+    })
+  }
+  
+  adicionarPedidos = (index)=>{
+    this.setState(prevState=>{
+      const quantidadeAtualizada = prevState.data
+      quantidadeAtualizada[index]['quantidade']+=1
+      return{
+        data:quantidadeAtualizada
+      }
+    })
+  }
+
+  cancelar = () =>{
+    const {guardarValores} = this.state
+    this.setState({
+      data:guardarValores,
+      showBotoes:false,
+    })
+  }
+  
+  confirmar = () =>{
+    const {fcomanda,data} = this.state
+    this.socket.emit('atualizar_comanda',{dados:data, comanda:fcomanda})
+    this.setState({
+      showBotoes:false,
+    })
+  }
+
   render() {
 
     return (
       <View style={styles.container}>
+        <Text>{this.state.fcomanda}</Text>
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Pedido</Text>
           <Text style={styles.headerText}>Quantidade</Text>
           <Text style={styles.headerText}>Valor</Text>
+          {!this.state.showBotoes && (
+          <Button title='editar' onPress={this.aparecerBotoes}/>
+          )}
+          {this.state.showBotoes && (
+            <View style={styles.tableRow}>
+            <Button title='Cancelar' color={'red'} onPress={this.cancelar}/>
+            <Text>    </Text>
+            <Button title='Confirmar' onPress={this.confirmar} />
+            </View>
+
+          )}
         </View>
 
         <FlatList
           data={this.state.data}
-          renderItem={({ item }) => (
+          renderItem={({ item,index }) => (
             <View style={styles.tableRow}>
               <Text style={styles.itemText}>{item.pedido}</Text>
               <Text style={styles.itemText}>{item.quantidade}</Text>
               <Text style={styles.itemText}>{item.preco}</Text>
+              {this.state.showBotoes && (
+                <View style={styles.tableRow}>
+                <Button title='-'  color={'red'} onPress={()=>this.apagarPedidos(index)}/>
+                <Text>    </Text>
+                <Button title='+' onPress={()=>this.adicionarPedidos(index)}/>
+                </View>
+              )}
             </View>
           )}
           keyExtractor={(item, index) => index.toString()}
@@ -89,7 +159,7 @@ class ComandaScreen extends React.Component {
 
         <View style={styles.summary}>
           <Text style={styles.totalText}>PREÇO TOTAL</Text>
-          <Text style={styles.totalValue}>{this.state.preco.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{this.state.preco}</Text>
           <Button title='Tudo Pago' onPress={this.apagarComanda} />
 
           <TextInput
