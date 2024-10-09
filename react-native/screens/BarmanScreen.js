@@ -1,3 +1,5 @@
+
+import { format, zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
 import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
 import io from 'socket.io-client';
@@ -7,6 +9,7 @@ export default class BarmanScreen extends React.Component {
     super(props);
     this.state = {
       data: [],
+      showEmPreparo:[],
       
     };
   }
@@ -24,6 +27,10 @@ export default class BarmanScreen extends React.Component {
   componentWillUnmount() {
     this.socket.off('initial_data');
   }
+ comecar = (id) => {
+  this.setState({showEmPreparo:true})
+  this.socket.emit('inserir_preparo',{id})
+ }
 
 
   render() {
@@ -32,14 +39,24 @@ export default class BarmanScreen extends React.Component {
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Comanda</Text>
           <Text style={styles.headerText}>Pedido</Text>
+          <Text style={styles.headerText}>Horario Envio</Text>
+          <Text style={styles.headerText}>Estado</Text>
         </View>
         <FlatList
           data={this.state.data}
-          renderItem={({ item }) => (
+          renderItem={({ item,index }) => (
             <View style={styles.tableRow}>
               <Text style={styles.itemText}>{item.comanda}</Text>
               <Text style={styles.itemText}>{item.pedido}</Text>
-              <Button title='Começar'/>
+              <Text style={styles.itemText}>{item.inicio}</Text>
+              <Text style={styles.itemText}>{item.estado}</Text>
+              {if (item.estado==='A Fazer'){
+                <Button title='Terminar'/>
+              }}
+              
+              {!this.state.showEmPreparo[index] &&(
+                <Button title='Começar' onPress={() => this.comecar(item.id)}/>
+              )}
             </View>
           )}
           keyExtractor={(item, index) => index.toString()}

@@ -8,6 +8,9 @@ import Cozinha from './screens/CozinhaScreen';
 import ComandaScreen from './screens/ComandaScreen';
 import EstoqueScreen from './screens/EstoqueScreen';
 
+
+
+
 // Criando os navegadores
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();

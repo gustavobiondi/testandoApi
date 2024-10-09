@@ -19,8 +19,8 @@ def handle_connect():
     print('Cliente conectado')
     dados_pedido = db.execute('SELECT * FROM pedidos')
     dados_estoque = db.execute('SELECT * FROM estoque')
-    emit('initial_data', {'dados_pedido': dados_pedido, 'dados_estoque': dados_estoque})
-
+    emit('initial_data', {'dados_pedido': dados_pedido,
+         'dados_estoque': dados_estoque})
 
 
 # Manipulador de desconexão
@@ -33,17 +33,17 @@ def handle_disconnect():
 # Manipulador para inserir dados
 
 
-
-
 @socketio.on('insert_order')
 def handle_insert_order(data):
     try:
         comanda = data.get('comanda')
         pedidos = data.get('pedidosSelecionados')
         quantidades = data.get('quantidadeSelecionada')
+        horario = data.get('horario')
         print(comanda)
         print(pedidos)
         print(quantidades)
+        print(horario)
         for i in range(len(pedidos)):
             pedido = pedidos[i]
             quantidade = quantidades[i]
@@ -51,17 +51,20 @@ def handle_insert_order(data):
                 'SELECT preco,categoria_id FROM cardapio WHERE item = ?', pedido)
             print(preco_unitario)
             categoria = preco_unitario[0]['categoria_id']
-            print (categoria)
-            db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria) VALUES (?, ?, ?,?,?)',
-                       comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade),categoria)
-            quantidade_anterior = db.execute('SELECT quantidade FROM estoque WHERE item = ?',pedido)
-            if  quantidade_anterior:
-                db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',float(quantidade_anterior[0]['quantidade'])-quantidade,pedido)
+            print(categoria)
+            db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado) VALUES (?, ?, ?,?,?,?,?)',
+                       comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer')
+            quantidade_anterior = db.execute(
+                'SELECT quantidade FROM estoque WHERE item = ?', pedido)
+            if quantidade_anterior:
+                db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?', float(
+                    quantidade_anterior[0]['quantidade'])-quantidade, pedido)
                 dados = db.execute('SELECT * FROM estoque')
                 emit('update_estoque', dados, broadcast=True)
             dados_pedido = db.execute('SELECT * FROM pedidos')
-            emit('initial_data', {'dados_pedido': dados_pedido}, broadcast=True)
-            
+            emit('initial_data', {
+                 'dados_pedido': dados_pedido}, broadcast=True)
+
         handle_get_cardapio(comanda)
 
     except Exception as e:
@@ -127,20 +130,30 @@ def pesquisa(data):
             break
     emit('pedidos', pedidos_filtrados)
 
-# Manipulador para obter o preço total da 
+# Manipulador para obter o preço total da
+
+
+@socketio.on('inserir_preparo')
+def inserir_preparo(data):
+    id = data.get('id')
+    db.execute('UPDATE pedidos SET estado = ? WHERE id = ?',
+               'EmPreparo', id)
+
+    dados_pedido = db.execute('SELECT * FROM pedidos')
+    emit('initial_data', {'dados_pedido': dados_pedido}, broadcast=True)
 
 
 @socketio.on('atualizar_comanda')
 def atualizar_comanda(data):
     try:
         comanda = data.get('comanda')
-        
+
         # Busca os dados antigos
         dados_antigos = db.execute('''
             SELECT pedido, id, SUM(quantidade) AS quantidade, SUM(preco) AS preco
             FROM pedidos WHERE comanda = ? GROUP BY pedido
         ''', comanda)
-        
+
         print("Dados antigos:", dados_antigos)
 
         dados_novos = data.get('dados')
@@ -148,9 +161,10 @@ def atualizar_comanda(data):
 
         # Verifique se o tamanho dos dados coincide
         if len(dados_antigos) != len(dados_novos):
-            raise Exception("O número de itens em dados antigos e novos não é o mesmo.")
+            raise Exception(
+                "O número de itens em dados antigos e novos não é o mesmo.")
         print(len(dados_novos))
-        teste_id = db.execute('SELECT * FROM pedidos WHERE id = ?','48')
+        teste_id = db.execute('SELECT * FROM pedidos WHERE id = ?', '48')
         print(teste_id)
 
         for i in range(len(dados_antigos)):
@@ -160,21 +174,24 @@ def atualizar_comanda(data):
             # Quantidade nova e antiga
             quantidade_nova = float(dados_novos[i]['quantidade'])
             quantidade_antiga = float(dados_antigos[i]['quantidade'])
-            quantidade = quantidade_nova- quantidade_antiga
-            
-            if quantidade_nova != 0 and quantidade_nova!=quantidade_antiga:
+            quantidade = quantidade_nova - quantidade_antiga
+
+            if quantidade_nova != 0 and quantidade_nova != quantidade_antiga:
                 # Busca o preço do cardápio
-                preco = db.execute('SELECT preco FROM cardapio WHERE item = ?', pedido)
+                preco = db.execute(
+                    'SELECT preco FROM cardapio WHERE item = ?', pedido)
 
                 # Busca o ID do pedido para atualizar
                 id_pedido = dados_novos[i]['id']
                 print(id_pedido)
-                db.execute('UPDATE estoque SET quantidade = quantidade+ ? WHERE item = ?',quantidade*-1,pedido)
+                db.execute(
+                    'UPDATE estoque SET quantidade = quantidade+ ? WHERE item = ?', quantidade*-1, pedido)
 
                 novo_preco = float(preco[0]['preco'])
-                db.execute('UPDATE pedidos SET quantidade = quantidade + ?, preco = preco + ? WHERE id = ?', quantidade, quantidade*novo_preco, id_pedido)
+                db.execute('UPDATE pedidos SET quantidade = quantidade + ?, preco = preco + ? WHERE id = ?',
+                           quantidade, quantidade*novo_preco, id_pedido)
 
-            elif quantidade_nova==0:
+            elif quantidade_nova == 0:
                 # Se a quantidade for 0, apaga o pedido
                 db.execute('DELETE FROM pedidos WHERE pedido = ?', pedido)
 
@@ -183,7 +200,6 @@ def atualizar_comanda(data):
         total_comanda = db.execute('''
             SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ?
         ''', comanda)
-        
 
         preco_total = float(total_comanda[0]['total']) if total_comanda else 0
         preco_pago = float(valor_pago[0]['valor_pago']) if valor_pago else 0
@@ -197,18 +213,15 @@ def atualizar_comanda(data):
         print(dados)
         print(type(dados))
         # Emitir os dados mais recentes da comanda e atualizar no frontend
-    
-        emit('preco', {'preco': preco_total - preco_pago, 'dados':dados, 'comanda':comanda}, broadcast=True)
+
+        emit('preco', {'preco': preco_total - preco_pago,
+             'dados': dados, 'comanda': comanda}, broadcast=True)
         estoque = db.execute('SELECT * FROM estoque')
         emit('update_estoque', estoque, broadcast=True)
-
 
     except Exception as e:
         print("Erro ao atualizar comanda:", e)
         emit('error', {'message': str(e)})
-
-            
-
 
 
 @socketio.on('get_cardapio')
@@ -226,11 +239,14 @@ def handle_get_cardapio(data):
         total_comanda = db.execute('''
             SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ?
         ''', fcomanda)
-        v_comanda_existe= db.execute('SELECT pedido FROM pedidos WHERE comanda = ?', fcomanda)
+        v_comanda_existe = db.execute(
+            'SELECT pedido FROM pedidos WHERE comanda = ?', fcomanda)
 
         if v_comanda_existe:
-            preco_total = float(total_comanda[0]['total']) if total_comanda else 0
-            preco_pago = float(valor_pago[0]['valor_pago']) if valor_pago else 0
+            preco_total = float(
+                total_comanda[0]['total']) if total_comanda else 0
+            preco_pago = float(
+                valor_pago[0]['valor_pago']) if valor_pago else 0
             print(preco_pago)
             print(preco_total)
 
@@ -241,14 +257,15 @@ def handle_get_cardapio(data):
             print(dados)
             print(type(dados))
             # Emitir os dados mais recentes da comanda e atualizar no frontend
-            emit('preco', {'preco': preco_total - preco_pago, 'dados':dados, 'comanda':fcomanda}, broadcast=True)
+            emit('preco', {'preco': preco_total - preco_pago,
+                 'dados': dados, 'comanda': fcomanda}, broadcast=True)
         else:
-            emit('preco',{'preco': '', 'dados':'','comanda':fcomanda},broadcast=True)
+            emit('preco', {'preco': '', 'dados': '',
+                 'comanda': fcomanda}, broadcast=True)
 
     except Exception as e:
         print("Erro ao calcular preço:", e)
         emit('error', {'message': str(e)})
-
 
 
 if __name__ == "__main__":

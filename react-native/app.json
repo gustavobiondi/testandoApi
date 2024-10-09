@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "nome-do-projeto",
-    "slug": "nome-do-projeto",
+      "name": "testandoApi",  
+    "slug": "Nosso_Sistema",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,12 +15,13 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.android"
-    },
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/adaptive-icon.png",
+    "backgroundColor": "#ffffff"
+  },
+  "package": "Gustavo.testandoApi"
+},
+
     "web": {
       "favicon": "./assets/favicon.png"
     }
