@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, emit
 from cs50 import SQL
 from flask_cors import CORS
 import eventlet
+from datetime import datetime
+import pytz
 
 # Inicialização do app Flask e SocketIO
 app = Flask(__name__)
@@ -40,6 +42,7 @@ def handle_insert_order(data):
         pedidos = data.get('pedidosSelecionados')
         quantidades = data.get('quantidadeSelecionada')
         horario = data.get('horario')
+        extra = data.get('extraSelecionados')
         print(comanda)
         print(pedidos)
         print(quantidades)
@@ -52,17 +55,27 @@ def handle_insert_order(data):
             print(preco_unitario)
             categoria = preco_unitario[0]['categoria_id']
             print(categoria)
-            db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado) VALUES (?, ?, ?,?,?,?,?)',
-                       comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer')
+            if extra[i]:
+                print("extra", extra)
+                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra) VALUES (?, ?, ?,?,?,?,?,?)',
+                        comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer',extra[i])
+            else:
+                print("nao tem extra")
+                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado) VALUES (?, ?, ?,?,?,?,?)',
+                        comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer')
             quantidade_anterior = db.execute(
                 'SELECT quantidade FROM estoque WHERE item = ?', pedido)
-            if quantidade_anterior:
-                db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?', float(
-                    quantidade_anterior[0]['quantidade'])-quantidade, pedido)
-                dados = db.execute('SELECT * FROM estoque')
-                emit('update_estoque', dados, broadcast=True)
             dados_pedido = db.execute('SELECT * FROM pedidos')
-            emit('initial_data', {
+            if quantidade_anterior:
+                quantidade_nova = float(quantidade_anterior[0]['quantidade'])- quantidade
+                db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?', quantidade_nova, pedido)
+                if quantidade_nova<10:
+                    emit('alerta_restantes',{'quantidade':quantidade_nova,'item':pedido},broadcast=True)
+                dados_estoque = db.execute('SELECT * FROM estoque')
+                emit('initial_data', {
+                 'dados_pedido': dados_pedido,'dados_estoque':dados_estoque}, broadcast=True)
+            else:
+                emit('initial_data', {
                  'dados_pedido': dados_pedido}, broadcast=True)
 
         handle_get_cardapio(comanda)
@@ -121,26 +134,83 @@ def pesquisa(data):
     pedidos_filtrados = []
     cont = 0
     for row in pedidos:
-        if cont < 5:
+        if cont < 8:
             pedido = row['item']
             if pedido.startswith(data):
-                pedidos_filtrados.append(pedido)
                 cont += 1
+                pedidos_filtrados.append(pedido)
         else:
             break
     emit('pedidos', pedidos_filtrados)
 
-# Manipulador para obter o preço total da
+@socketio.on('categoria')
+def categoria(data):
+    pedido = data
+    print(pedido)
+    categoria = db.execute('SELECT categoria_id FROM cardapio WHERE item = ?',pedido)
+    print(categoria[0]['categoria_id'])
+    if categoria[0]['categoria_id']==2:
+        emit('showExtra',categoria,broadcast=True)
+
+@socketio.on('get_ingredientes')
+def get_ingredientes(data):
+    item = data.get('ingrediente')  # Obtenha o nome do item
+    index = data.get('index')  # Obtenha o índice do item na lista
+    # Execute uma query no banco de dados para obter os ingredientes do item
+    ingrediente = db.execute('SELECT ingredientes FROM cardapio WHERE item = ?', item)
+
+    if ingrediente:
+        # Envia os ingredientes de volta para o cliente, junto com o índice correspondente
+        emit('ingrediente', {'ingrediente': ingrediente[0]['ingredientes'], 'index': index}, broadcast=True)
+
 
 
 @socketio.on('inserir_preparo')
 def inserir_preparo(data):
     id = data.get('id')
+    estado = data.get('estado')
+    horario = datetime.now(pytz.timezone('America/Sao_Paulo')).strftime('%H:%M')
+
+    if estado == 'Pronto':
+        db.execute('UPDATE pedidos SET fim = ? WHERE id = ?',horario,id)
+    elif estado=='Em Preparo':
+         db.execute('UPDATE pedidos SET comecar = ? WHERE id = ?',horario,id)
+
     db.execute('UPDATE pedidos SET estado = ? WHERE id = ?',
-               'EmPreparo', id)
+               estado, id)
 
     dados_pedido = db.execute('SELECT * FROM pedidos')
     emit('initial_data', {'dados_pedido': dados_pedido}, broadcast=True)
+
+
+@socketio.on('verificar_quantidade')
+def verificar_quantidade(data):
+    item = data.get('item')
+    quantidade = data.get('quantidade')
+    modo = data.get('modo')
+    print(modo)
+    print(type(modo))
+    verificar_estoque = db.execute('SELECT quantidade FROM estoque WHERE item = ?',item)
+    if verificar_estoque and float(verificar_estoque[0]['quantidade'])-float(quantidade)<0:
+        print('entrou no if')
+        emit('quantidade_insuficiente',{'quantidade':verificar_estoque[0]['quantidade'],'erro':True,'modo':modo}, broadcast=True)
+    else:
+        print('entrou no else')
+        emit('quantidade_insuficiente',{'erro':False,'modo':modo}, broadcast=True)
+
+
+@socketio.on('atualizar_estoque')
+def atualizar_estoque(data):
+    itensAlterados=data.get('itensAlterados')
+    for i in itensAlterados:
+        item = i['item']
+        quantidade = i['quantidade']
+        db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',float(quantidade),item)
+    dados_estoque = db.execute('SELECT * FROM estoque')
+    emit('initial_data',{'dados_estoque':dados_estoque},broadcast=True)
+
+
+
 
 
 @socketio.on('atualizar_comanda')
@@ -164,8 +234,7 @@ def atualizar_comanda(data):
             raise Exception(
                 "O número de itens em dados antigos e novos não é o mesmo.")
         print(len(dados_novos))
-        teste_id = db.execute('SELECT * FROM pedidos WHERE id = ?', '48')
-        print(teste_id)
+    
 
         for i in range(len(dados_antigos)):
             pedido = dados_antigos[i]['pedido']

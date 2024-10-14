@@ -2,14 +2,12 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // Import GestureHandlerRootView
 import HomeScreen from './screens/HomeScreen';
 import BarmanScreen from './screens/BarmanScreen';
 import Cozinha from './screens/CozinhaScreen';
 import ComandaScreen from './screens/ComandaScreen';
 import EstoqueScreen from './screens/EstoqueScreen';
-
-
-
 
 // Criando os navegadores
 const Drawer = createDrawerNavigator();
@@ -28,14 +26,17 @@ function HomeStack() {
 // Configuração do Drawer Navigator
 export default function App() {
   return (
-    <NavigationContainer>
-      <Drawer.Navigator initialRouteName="Home">
-        {/* Use o Stack Navigator dentro da tela Home */}
-        <Drawer.Screen name="Home" component={HomeStack} />
-        <Drawer.Screen name="Barman" component={BarmanScreen} />
-        <Drawer.Screen name="Cozinha" component={Cozinha} />
-        <Drawer.Screen name='Estoque' component={EstoqueScreen} />
-      </Drawer.Navigator>
-    </NavigationContainer>
+    // Wrapping the entire app in GestureHandlerRootView to enable gesture handling
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <Drawer.Navigator initialRouteName="Home">
+          {/* Use o Stack Navigator dentro da tela Home */}
+          <Drawer.Screen name="Home" component={HomeStack} />
+          <Drawer.Screen name="Barman" component={BarmanScreen} />
+          <Drawer.Screen name="Cozinha" component={Cozinha} />
+          <Drawer.Screen name="Estoque" component={EstoqueScreen} />
+        </Drawer.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

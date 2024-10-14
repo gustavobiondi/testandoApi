@@ -13,11 +13,12 @@ class ComandaScreen extends React.Component {
       valor_pago: '', // Valor inicial vazio para garantir um controle adequado
       guardarValores:[],
       showBotoes:false,
+      showDez:null,
     };
   }
 
   componentDidMount() {
-    this.socket = io('http://127.0.0.1:5000');
+    this.socket = io('http://192.168.15.16:5000');
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
 
@@ -43,7 +44,7 @@ class ComandaScreen extends React.Component {
   componentWillUnmount() {
     this.socket.off('preco')
     this.socket.off('comanda_deleted')
-    this.socket.on('error')
+    this.socket.off('error')
   }
 
   apagarComanda = () => {
@@ -160,8 +161,13 @@ class ComandaScreen extends React.Component {
         <View style={styles.summary}>
           <Text style={styles.totalText}>PREÇO TOTAL</Text>
           <Text style={styles.totalValue}>{this.state.preco}</Text>
+          <View  style={{flexDirection:'row',padding:15}}>
           <Button title='Tudo Pago' onPress={this.apagarComanda} />
-
+          {!this.state.showDez?(
+          <Button title='10%' onPress={() =>this.setState(prevState=>({preco:prevState.preco*1.1,showDez:prevState.preco}))}/>
+          ):(<Button title='X' color={'red'} onPress={()=>this.setState(prevState=>({preco:prevState.showDez,showDez:null}))}/>)}
+          </View>
+          <View  style={{flexDirection:'row',padding:15}}>
           <TextInput
             placeholder="Quanto?"
             onChangeText={this.changeValor}
@@ -170,6 +176,7 @@ class ComandaScreen extends React.Component {
             style={styles.input}
           />
           <Button title='Pagar Parcial' onPress={this.pagarParcial} />
+          </View>
         </View>
       </View>
     );
