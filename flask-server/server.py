@@ -11,7 +11,91 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'seu_segredo_aqui'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 db = SQL('sqlite:///dados.db')
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
+
+
+@app.route('/permitir', methods=['POST'])
+def permitir():
+    data = request.json
+    id = data.get('id')
+    # Corrigido para buscar 'numero', que está vindo do frontend
+    numero = data.get('numero')
+    db.execute('UPDATE usuarios SET liberado = ? WHERE id = ?',
+               numero, id)  # Atualiza a coluna 'liberado'
+    users = db.execute('SELECT * FROM usuarios')
+    return {'users': users}
+
+
+@app.route('/users', methods=['POST'])
+def users():
+    data = request.json
+    username = data.get('username')
+    users = db.execute('SELECT * from usuarios')
+
+    return {'users': users}
+
+
+@app.route('/verificar_username', methods=['POST'])
+def verificar_usu():
+    data = request.json
+    username = data.get('username')
+    print(username)
+    senha = data.get('senha')
+    print(senha)
+    existe = db.execute(
+        'SELECT * FROM usuarios WHERE username =? AND senha =? AND liberado=?', username, senha, '1')
+    if existe:
+        print('true')
+        return {'data': True, 'cargo': existe[0]['cargo']}
+    else:
+        print('false')
+        return {'data': False}
+
+
+@app.route('/verificar_quantidade', methods=['POST'])
+def verif_quantidade():
+    data = request.json  # Use request.json para pegar o corpo da requisição
+    item = data.get('item')
+    quantidade = data.get('quantidade')
+
+    if not item or not quantidade:
+        return jsonify({'erro': 'Item ou quantidade ausentes.'}), 400
+
+    verificar_estoque = db.execute(
+        'SELECT quantidade FROM estoque WHERE item = ?', item)
+
+    if verificar_estoque:
+        estoque_atual = float(verificar_estoque[0]['quantidade'])
+        if estoque_atual - float(quantidade) < 0:
+            return jsonify({'erro': 'Estoque insuficiente', 'quantidade': estoque_atual}), 200
+        else:
+            return jsonify({'sucesso': 'Pedido pode ser processado', 'quantidade': estoque_atual}), 200
+    else:
+        return jsonify({'erro': 'Item não encontrado'}), 404
+
+
+@app.route('/verificar_quantidade_enviar', methods=['POST'])
+def verificar_quantidade():
+    data = request.json  # Use request.json para pegar o corpo da requisição
+    item = data.get('item')
+    quantidade = data.get('quantidade')
+
+    if not item or not quantidade:
+        return jsonify({'erro': 'Item ou quantidade ausentes.'}), 400
+
+    verificar_estoque = db.execute(
+        'SELECT quantidade FROM estoque WHERE item = ?', item)
+
+    if verificar_estoque:
+        estoque_atual = float(verificar_estoque[0]['quantidade'])
+        if estoque_atual - float(quantidade) < 0:
+            return jsonify({'erro': True, 'quantidade': estoque_atual}), 200
+        else:
+            return jsonify({'erro': False, 'quantidade': estoque_atual}), 200
+
+    else:
+        return jsonify({'erro': 'Item não encontrado'}), 404
+
 
 # Manipulador de conexão
 
@@ -43,6 +127,8 @@ def handle_insert_order(data):
         quantidades = data.get('quantidadeSelecionada')
         horario = data.get('horario')
         extra = data.get('extraSelecionados')
+        username = data.get('username')
+        print(username)
         print(comanda)
         print(pedidos)
         print(quantidades)
@@ -57,26 +143,29 @@ def handle_insert_order(data):
             print(categoria)
             if extra[i]:
                 print("extra", extra)
-                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra) VALUES (?, ?, ?,?,?,?,?,?)',
-                        comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer',extra[i])
+                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra,username) VALUES (?, ?, ?,?,?,?,?,?)',
+                           comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer', extra[i], username)
             else:
                 print("nao tem extra")
-                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado) VALUES (?, ?, ?,?,?,?,?)',
-                        comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer')
+                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,username) VALUES (?, ?, ?,?,?,?,?,?)',
+                           comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer', username)
             quantidade_anterior = db.execute(
                 'SELECT quantidade FROM estoque WHERE item = ?', pedido)
             dados_pedido = db.execute('SELECT * FROM pedidos')
             if quantidade_anterior:
-                quantidade_nova = float(quantidade_anterior[0]['quantidade'])- quantidade
-                db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?', quantidade_nova, pedido)
-                if quantidade_nova<10:
-                    emit('alerta_restantes',{'quantidade':quantidade_nova,'item':pedido},broadcast=True)
+                quantidade_nova = float(
+                    quantidade_anterior[0]['quantidade']) - quantidade
+                db.execute(
+                    'UPDATE estoque SET quantidade = ? WHERE item = ?', quantidade_nova, pedido)
+                if quantidade_nova < 10:
+                    emit('alerta_restantes', {
+                         'quantidade': quantidade_nova, 'item': pedido}, broadcast=True)
                 dados_estoque = db.execute('SELECT * FROM estoque')
                 emit('initial_data', {
-                 'dados_pedido': dados_pedido,'dados_estoque':dados_estoque}, broadcast=True)
+                    'dados_pedido': dados_pedido, 'dados_estoque': dados_estoque}, broadcast=True)
             else:
                 emit('initial_data', {
-                 'dados_pedido': dados_pedido}, broadcast=True)
+                    'dados_pedido': dados_pedido}, broadcast=True)
 
         handle_get_cardapio(comanda)
 
@@ -143,38 +232,43 @@ def pesquisa(data):
             break
     emit('pedidos', pedidos_filtrados)
 
+
 @socketio.on('categoria')
 def categoria(data):
     pedido = data
     print(pedido)
-    categoria = db.execute('SELECT categoria_id FROM cardapio WHERE item = ?',pedido)
+    categoria = db.execute(
+        'SELECT categoria_id FROM cardapio WHERE item = ?', pedido)
     print(categoria[0]['categoria_id'])
-    if categoria[0]['categoria_id']==2:
-        emit('showExtra',categoria,broadcast=True)
+    if categoria[0]['categoria_id'] == 2:
+        emit('showExtra', categoria, broadcast=True)
+
 
 @socketio.on('get_ingredientes')
 def get_ingredientes(data):
     item = data.get('ingrediente')  # Obtenha o nome do item
     index = data.get('index')  # Obtenha o índice do item na lista
     # Execute uma query no banco de dados para obter os ingredientes do item
-    ingrediente = db.execute('SELECT ingredientes FROM cardapio WHERE item = ?', item)
+    ingrediente = db.execute(
+        'SELECT ingredientes FROM cardapio WHERE item = ?', item)
 
     if ingrediente:
         # Envia os ingredientes de volta para o cliente, junto com o índice correspondente
-        emit('ingrediente', {'ingrediente': ingrediente[0]['ingredientes'], 'index': index}, broadcast=True)
-
+        emit('ingrediente', {
+             'ingrediente': ingrediente[0]['ingredientes'], 'index': index}, broadcast=True)
 
 
 @socketio.on('inserir_preparo')
 def inserir_preparo(data):
     id = data.get('id')
     estado = data.get('estado')
-    horario = datetime.now(pytz.timezone('America/Sao_Paulo')).strftime('%H:%M')
+    horario = datetime.now(pytz.timezone(
+        'America/Sao_Paulo')).strftime('%H:%M')
 
     if estado == 'Pronto':
-        db.execute('UPDATE pedidos SET fim = ? WHERE id = ?',horario,id)
-    elif estado=='Em Preparo':
-         db.execute('UPDATE pedidos SET comecar = ? WHERE id = ?',horario,id)
+        db.execute('UPDATE pedidos SET fim = ? WHERE id = ?', horario, id)
+    elif estado == 'Em Preparo':
+        db.execute('UPDATE pedidos SET comecar = ? WHERE id = ?', horario, id)
 
     db.execute('UPDATE pedidos SET estado = ? WHERE id = ?',
                estado, id)
@@ -183,34 +277,16 @@ def inserir_preparo(data):
     emit('initial_data', {'dados_pedido': dados_pedido}, broadcast=True)
 
 
-@socketio.on('verificar_quantidade')
-def verificar_quantidade(data):
-    item = data.get('item')
-    quantidade = data.get('quantidade')
-    modo = data.get('modo')
-    print(modo)
-    print(type(modo))
-    verificar_estoque = db.execute('SELECT quantidade FROM estoque WHERE item = ?',item)
-    if verificar_estoque and float(verificar_estoque[0]['quantidade'])-float(quantidade)<0:
-        print('entrou no if')
-        emit('quantidade_insuficiente',{'quantidade':verificar_estoque[0]['quantidade'],'erro':True,'modo':modo}, broadcast=True)
-    else:
-        print('entrou no else')
-        emit('quantidade_insuficiente',{'erro':False,'modo':modo}, broadcast=True)
-
-
 @socketio.on('atualizar_estoque')
 def atualizar_estoque(data):
-    itensAlterados=data.get('itensAlterados')
+    itensAlterados = data.get('itensAlterados')
     for i in itensAlterados:
         item = i['item']
         quantidade = i['quantidade']
-        db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',float(quantidade),item)
+        db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',
+                   float(quantidade), item)
     dados_estoque = db.execute('SELECT * FROM estoque')
-    emit('initial_data',{'dados_estoque':dados_estoque},broadcast=True)
-
-
-
+    emit('initial_data', {'dados_estoque': dados_estoque}, broadcast=True)
 
 
 @socketio.on('atualizar_comanda')
@@ -234,7 +310,6 @@ def atualizar_comanda(data):
             raise Exception(
                 "O número de itens em dados antigos e novos não é o mesmo.")
         print(len(dados_novos))
-    
 
         for i in range(len(dados_antigos)):
             pedido = dados_antigos[i]['pedido']

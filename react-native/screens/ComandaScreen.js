@@ -18,7 +18,7 @@ class ComandaScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://192.168.1.36:5000');
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
 

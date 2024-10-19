@@ -15,7 +15,7 @@ export default class EstoqueScreen extends React.Component{
       }
 
       componentDidMount(){
-        this.socket = io('http://192.168.15.16:5000');
+        this.socket = io('http://192.168.1.36:5000');
     
         this.socket.on('connect', () => {
             console.log('Conectado ao servidor');
@@ -78,6 +78,36 @@ export default class EstoqueScreen extends React.Component{
         this.setState({showEditar:false})
 
       };
+      alterarQuantidade = (quantidade, index) => {
+          const atualizar = [...this.state.data]; // Cria uma cópia do array
+          const pedido_na_lista = this.state.itensAlterados.some(item => item.item === atualizar[index].item); // Verifica se o item está na lista alterada
+          
+          // Cria uma cópia do array de data com a quantidade alterada
+          const newData = atualizar.map((item, ind) => {
+              if (ind === index) {
+                  return { ...item, quantidade: quantidade }; // Atualiza a quantidade do item
+              }
+              return item;
+          });
+      
+          // Verifica se o item já está na lista de itensAlterados
+          if (!pedido_na_lista) {
+              // Se não estiver, adiciona o item à lista de itens alterados
+              this.setState(prevState => ({
+                  itensAlterados: [...prevState.itensAlterados, { ...newData[index] }]
+              }));
+          } else {
+              // Se já estiver, atualiza a quantidade na lista de itens alterados
+              this.setState(prevState => ({
+                  itensAlterados: prevState.itensAlterados.map(item =>
+                      item.item === newData[index].item ? { ...item, quantidade: newData[index].quantidade } : item
+                  )
+              }));
+          } 
+      // Atualiza o estado de data com o novo array
+      this.setState({ data: newData });
+    }      
+    
       
 
       render() {
@@ -92,36 +122,30 @@ export default class EstoqueScreen extends React.Component{
                     )}
                 </View>
                 <FlatList
+                    
                     data={this.state.data}
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({ item, index }) => {
                         return (
-                            <View style={styles.tableRow}>
+                            <View style={[styles.tableRow,{flex:1}]}>
                                 {this.state.showEditar ? (
-                                    <View style={styles.editRow}>
+                                    <View style={[styles.tableRow,{flex:1}]}>
                                         <Text style={styles.itemText}>{item.item}</Text>
                                         <View style={{flexDirection:'row',padding:0}}>
-                                        <Text style={styles.itemText}>{item.quantidade}</Text>
-                                        {this.quantidadeText?(
-                                          <View style={{flexDirection:'row'}}>
-                                          <TextInput
-                                          onChangeText={(quantidade)=>this.setState({quantidadeText:quantidade})}
-                                          value={this.state.quantidadeText}
-                                          />
-                                          <Button title='V' onPress={()=>this.setState({quantidadeText:null})}/>
-                                          </View>
-                                        ):(
-                                        <Button title='~' onPress={()=>this.setState({quantidadeText:item.quantidade})}/>
-                                        )}
 
                                         </View>
-                                        <View style={styles.quantityContainer}>
+                                        <View style={[styles.tableRow,{flex:1}]}>
                                             <Button title="-" onPress={() => this.diminuirQuantidade(index)} />
+                                            <TextInput 
+                                                value={item.quantidade.toString()} 
+                                                onChangeText={(text) => this.alterarQuantidade(text, index)}  // Usa onChangeText para capturar o valor digitado
+                                            />
+
                                             <Button title="+" onPress={() => this.aumentarQuantidade(index)} />
                                         </View>
                                     </View>
                                 ) : (
-                                    <View style={styles.normalRow}>
+                                    <View style={[styles.tableRow,{flex:1}]}>
                                         <Text style={styles.itemText}>{item.item}</Text>
                                         <Text style={styles.itemText}>{item.quantidade}</Text>
                                         
