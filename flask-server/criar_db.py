@@ -5,11 +5,8 @@ db = SQL('sqlite:///dados.db')
 
 # Adicionando a coluna 'liberado' à tabela 'usuarios
 
-# Selecionando todos os dados da tabela 'usuarios'
-db.execute('ALTER TABLE pedidos ADD COLUMN nome TEXT')
-db.execute('UPDATE pedidos SET nome = ? WHERE username = ?',
-           'joao', 'tatianabiondi')
-dados = db.execute('SELECT * FROM pedidos')
+
+dados = db.execute('SELECT * FROM pagamentos')
 
 # Imprimindo os dados
 print(dados)

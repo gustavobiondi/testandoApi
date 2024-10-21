@@ -18,7 +18,7 @@ class ComandaScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.1.36:5000');
+    this.socket = io('http://192.168.15.16:5000');
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
 
@@ -48,8 +48,8 @@ class ComandaScreen extends React.Component {
   }
 
   apagarComanda = () => {
-    const { fcomanda } = this.state;
-    this.socket.emit('delete_comanda', { fcomanda: fcomanda });
+    const { fcomanda,preco } = this.state;
+    this.socket.emit('delete_comanda', { fcomanda: fcomanda, valor_pago:preco });
   }
 
   changeValor = (valor_pago) => {
@@ -59,8 +59,9 @@ class ComandaScreen extends React.Component {
   pagarParcial = () => {
     const { valor_pago, fcomanda, preco } = this.state;
     const valorNum = parseFloat(valor_pago);
-    
+    console.log('entrou pagar parcial')
     if (!isNaN(valorNum) && valorNum > 0 && valorNum <= preco) {
+      console.log('entrou no if')
       this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda: fcomanda });
       this.setState((prevState) => ({
         preco: prevState.preco - valorNum,

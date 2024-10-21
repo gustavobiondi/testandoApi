@@ -40,7 +40,7 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io('http://192.168.1.36:5000');
+    this.socket = io('http://192.168.15.16:5000');
     this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
     this.socket.on('preco', (data) => this.setState({ preco: data.preco }));
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
@@ -111,7 +111,7 @@ export default class HomeScreen extends React.Component {
       });
       this.setState({ comand: '', pedido: '', pedidosSelecionados: [], quantidadeSelecionada: [], extraSelecionados: [], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false });
     } else if (comand && pedido && quantidade) {
-      fetch('http://192.168.1.36:5000/verificar_quantidade', {  // Endpoint correto
+      fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -189,7 +189,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, quantidade} = this.state;
-    fetch('http://192.168.1.36:5000/verificar_quantidade', {  // Endpoint correto
+    fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

@@ -14,6 +14,22 @@ db = SQL('sqlite:///dados.db')
 CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
 
 
+
+@app.route('/faturamento', methods=['GET'])
+def faturamento():
+    dia = datetime.now().date()  # Obter a data atual
+    
+    # Executar a consulta e pegar o resultado
+    faturamento = db.execute('SELECT faturamento FROM pagamentos WHERE dia = ?', dia)
+    dia_formatado = dia.strftime('%d/%m')
+
+    if faturamento:  # Verifica se há algum resultado
+        # Pega o valor do faturamento do primeiro resultado
+        return jsonify({'dia': str(dia_formatado), 'faturamento': faturamento[0]['faturamento']})
+    else:
+        return jsonify({'dia': str(dia_formatado), 'faturamento': 0})  # Se não houver faturamento
+
+
 @app.route('/permitir', methods=['POST'])
 def permitir():
     data = request.json
@@ -181,6 +197,16 @@ def handle_delete_comanda(data):
             comanda = data
         else:
             comanda = data.get('fcomanda')
+            valor_pago = float(data.get('valor_pago'))
+            dia = datetime.now().date()
+            print(f'data de hoje : {dia}')
+            valor_do_dia = db.execute('SELECT * FROM pagamentos WHERE dia = ?',dia)
+            if valor_do_dia:
+                antigo_valor = float(valor_do_dia[0]['faturamento'])
+                db.execute('UPDATE pagamentos SET faturamento = ? WHERE dia = ?',valor_pago+antigo_valor,dia)
+            else:
+                db.execute('INSERT INTO pagamentos, (dia, faturamento) VALUES (?,?)',dia,valor_pago)
+
 
         db.execute('DELETE FROM pedidos WHERE comanda = ?', (comanda,))
         db.execute('DELETE FROM valores_pagos WHERE comanda = ?', (comanda,))
@@ -193,7 +219,20 @@ def handle_delete_comanda(data):
 
 @socketio.on('pagar_parcial')
 def pagar_parcial(data):
+    
     valor_pago = data.get('valor_pago')
+
+    dia = datetime.now().date()
+    print(f'data de hoje : {dia}')
+    valor_do_dia = db.execute('SELECT * FROM pagamentos WHERE dia = ?',dia)
+    if valor_do_dia:
+        antigo_valor = float(valor_do_dia[0]['faturamento'])
+        db.execute('UPDATE pagamentos SET faturamento = ? WHERE dia = ?',float(valor_pago)+antigo_valor,dia)
+    else:
+        db.execute('INSERT INTO pagamentos, (dia, faturamento) VALUES (?,?)',dia,float(valor_pago))
+
+
+
     comanda = data.get('fcomanda')
     preco_pago = db.execute(
         'SELECT valor_pago FROM valores_pagos WHERE comanda = ?', comanda)

@@ -11,6 +11,8 @@ import EstoqueScreen from './screens/EstoqueScreen';
 import Login from './screens/LoginScreen';
 import ChoseUser from './screens/ChoseUser';
 import { UserContext, UserProvider } from './UserContext'; // Import UserProvider and context
+import PedidosScreen from './screens/PedidosScreen';
+import Analytics from './screens/AnalyticsScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -37,7 +39,9 @@ function AuthNavigator() {
           <Drawer.Screen name="Home" component={HomeStack} />
           <Drawer.Screen name="Barman" component={BarmanScreen} />
           <Drawer.Screen name="Cozinha" component={Cozinha} />
+          <Drawer.Screen name="Pedidos" component={PedidosScreen} />
           <Drawer.Screen name="Estoque" component={EstoqueScreen} />
+          <Drawer.Screen name="Analytics" component={Analytics} />
           <Drawer.Screen name="Users" component={ChoseUser} />
         </Drawer.Navigator>
       ) : (
