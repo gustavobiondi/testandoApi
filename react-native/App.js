@@ -21,11 +21,20 @@ const Stack = createStackNavigator();
 function HomeStack() {
   return (
     <Stack.Navigator initialRouteName="home">
-      <Stack.Screen name="home" component={HomeScreen} />
-      <Stack.Screen name="ComandaScreen" component={ComandaScreen} />
+      <Stack.Screen 
+        name="home" 
+        component={HomeScreen} 
+        options={{ headerShown: false }} // Oculta o cabeçalho
+      />
+      <Stack.Screen 
+        name="ComandaScreen" 
+        component={ComandaScreen} 
+        options={{ headerShown: false }} // Oculta o cabeçalho
+      />
     </Stack.Navigator>
   );
 }
+
 
 // Defina um componente de navegação condicional
 function AuthNavigator() {
@@ -33,7 +42,7 @@ function AuthNavigator() {
 
   return (
     <NavigationContainer>
-      {user.username ? (
+      {user.username ? (user.cargo==='ADM'?(
         // Se o usuário está logado, mostrar as telas protegidas
         <Drawer.Navigator initialRouteName="Home">
           <Drawer.Screen name="Home" component={HomeStack} />
@@ -44,7 +53,15 @@ function AuthNavigator() {
           <Drawer.Screen name="Analytics" component={Analytics} />
           <Drawer.Screen name="Users" component={ChoseUser} />
         </Drawer.Navigator>
-      ) : (
+      ):(
+        <Drawer.Navigator initialRouteName="Home">
+          <Drawer.Screen name="Home" component={HomeStack} />
+          <Drawer.Screen name="Barman" component={BarmanScreen} />
+          <Drawer.Screen name="Cozinha" component={Cozinha} />
+          <Drawer.Screen name="Pedidos" component={PedidosScreen} />
+          <Drawer.Screen name="Estoque" component={EstoqueScreen} />
+        </Drawer.Navigator>
+      )): (
         // Se não está logado, mostrar a tela de login
         <Stack.Navigator initialRouteName="Login">
           <Stack.Screen name="Login" component={Login} />

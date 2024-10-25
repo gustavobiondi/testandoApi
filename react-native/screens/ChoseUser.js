@@ -23,7 +23,7 @@ export default class ChoseUser extends React.Component {
     }
 
     // Faz a requisição com base no username do contexto
-    fetch('http://192.168.15.16:5000/users', {
+    fetch('http://127.0.0.1:5000/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export default class ChoseUser extends React.Component {
 
   // Corrige a função Liberar, agora recebendo um ID e o valor de liberação
   Liberar = (id, numero) => {
-    fetch('http://192.168.15.16:5000/permitir', {
+    fetch('http://127.0.0.1:5000/permitir', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -15,7 +15,7 @@ export default class Login extends React.Component {
   static contextType = UserContext; // Assign contextType to access context
 
   mandarValores(username, senha) {
-    fetch('http://192.168.15.16:5000/verificar_username', {
+    fetch('http://127.0.0.1:5000/verificar_username', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

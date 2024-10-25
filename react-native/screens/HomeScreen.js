@@ -15,14 +15,20 @@ export default class HomeScreen extends React.Component {
       pedido: '',
       extra: '',
       preco: null,
+      preco_total:0,
+      preco_pago:0,
       data: [],
       fcomanda: '',
       categoria: 'produto',
       pedido_filtrado: [],
+      comanda_filtrada:[],
+      comanda_filtrada_abrir:[],
       quantidadeSelecionada: [],
       pedidosSelecionados: [],
       extraSelecionados: [],
       showPedido: false,
+      showComandaPedido: false,
+      showComanda:false,
       showQuantidade: false,
       showPedidoSelecionado: false,
       showExtra: false,
@@ -40,11 +46,13 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://127.0.0.1:5000');
     this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
-    this.socket.on('preco', (data) => this.setState({ preco: data.preco }));
+    this.socket.on('preco', (data) => this.setState({ preco: data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total}));
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
     this.socket.on('pedidos', (res) => this.setState({ pedido_filtrado: res }));
+    this.socket.on('comandas',(res)=> this.setState({ comanda_filtrada: res }))
+    this.socket.on('comandas_abrir',(res)=> this.setState({ comanda_filtrada_abrir: res }))
     this.socket.on('showExtra', (cat) => this.setState({ showExtra: true }));
     this.socket.on('alerta_restantes', (data) => {
       this.setState({ quantidadeRestanteMensagem: data.quantidade, pedidoRestanteMensagem: data.item });
@@ -86,14 +94,29 @@ export default class HomeScreen extends React.Component {
     this.socket.off('alerta_restantes');
   }
 
-  changeComanda = (comand) => this.setState({ comand });
+  changeComanda = (comand) => {
+    this.setState({ comand , showComandaPedido: !!comand})
+    if (comand){
+      this.socket.emit('pesquisa_comanda',{comanda:comand})
+    }
+  };
+
+
   changePedido = (pedido) => {
     this.setState({ pedido, showPedido: !!pedido });
     if (pedido) {
       this.socket.emit('pesquisa', pedido);
     }
   };
-  changeFcomanda = (fcomanda) => this.setState({ fcomanda });
+
+  changeFcomanda = (fcomanda) => {
+    this.setState({ fcomanda , showComanda: !!fcomanda})
+    if (fcomanda){
+      this.socket.emit('pesquisa_abrir_comanda',{comanda:fcomanda})
+    }
+  };
+  
+  ;
   changeCategoria = (categoria) => this.setState({ categoria });
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
@@ -111,7 +134,8 @@ export default class HomeScreen extends React.Component {
       });
       this.setState({ comand: '', pedido: '', pedidosSelecionados: [], quantidadeSelecionada: [], extraSelecionados: [], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false });
     } else if (comand && pedido && quantidade) {
-      fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
+      console.log('fetch')
+      fetch('http://127.0.0.1:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -123,6 +147,7 @@ export default class HomeScreen extends React.Component {
     })
     .then(response => response.json())
     .then(data => {
+      console.log(data)
       if (data.erro) {
         this.setState({
           comand: '',
@@ -160,7 +185,8 @@ export default class HomeScreen extends React.Component {
     if (fcomanda) {
       this.socket.emit('get_cardapio', { fcomanda });
       this.socket.once('preco', (data) => {
-        this.props.navigation.navigate('ComandaScreen', { data: data.dados, fcomanda: this.state.fcomanda, preco: data.preco });
+        console.log(data)
+        this.props.navigation.navigate('ComandaScreen', { data: data.dados, fcomanda: this.state.fcomanda, preco: data.preco_a_pagar,preco_total:data.preco_total,preco_pago:data.preco_pago });
       });
     } else {
       console.warn('Por favor, insira a comanda.');
@@ -182,6 +208,13 @@ export default class HomeScreen extends React.Component {
     this.setState({ pedido, pedido_filtrado: [], showQuantidade: true });
     this.socket.emit('categoria', pedido);
   };
+  selecionarComandaPedido =(comand) =>{
+    this.setState({ comand, comanda_filtrada: [], showComandaPedido:false})
+  }
+  
+  selecionarComanda =(fcomanda) =>{
+    this.setState({ fcomanda, comanda_filtrada_abrir: [], showComanda:false})
+  }
 
   aumentar_quantidade = () => this.setState((prevState) => ({ quantidade: prevState.quantidade + 1 }));
   diminuir_quantidade = () => this.setState((prevState) => ({ quantidade: Math.max(prevState.quantidade - 1, 1) }));
@@ -189,7 +222,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, quantidade} = this.state;
-    fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
+    fetch('http://127.0.0.1:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -284,6 +317,15 @@ export default class HomeScreen extends React.Component {
               alert(`Quantidade Insuficiente : apenas ${quantidadeEstoqueMensagem} no Estoque`),
               this.setState({quantidadeEstoqueMensagem:null})
             )}
+
+            {this.state.showComandaPedido && (
+                this.state.comanda_filtrada.map((item,index)=>(
+                    <TouchableOpacity key={index} style={[styles.container,{alignItems:'left',padding:8}]} onPress={() => this.selecionarComandaPedido(item)}>
+                      <Text style={{fontSize:20}}>{item}</Text>
+            
+                    </TouchableOpacity>
+                  ))
+            )}
         
             {this.state.showPedido && (
                 this.state.pedido_filtrado.map((item,index)=>(
@@ -321,11 +363,21 @@ export default class HomeScreen extends React.Component {
               value={this.state.fcomanda}
               style={[styles.input, { marginTop: 20 }]}
             />
+            <View>
+            {this.state.showComanda && (
+                this.state.comanda_filtrada_abrir.map((item,index)=>(
+                    <TouchableOpacity key={index} style={[styles.container,{alignItems:'left',padding:8}]} onPress={() => this.selecionarComanda(item)}>
+                      <Text style={{fontSize:20}}>{item}</Text>
+            
+                    </TouchableOpacity>
+                  ))
+            )}
+            </View>
             <Button title="Abrir Comanda" onPress={this.getCardapio} />
           </View>
         </ScrollView>
       </View>
-    ); }}  
+    ); } }
 
 
 const styles = StyleSheet.create({

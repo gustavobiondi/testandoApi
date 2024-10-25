@@ -14,20 +14,82 @@ db = SQL('sqlite:///dados.db')
 CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
 
 
+@app.route('/pegar_pedidos', methods=['POST'])
+def pegar_pedidos():
+    # Pegando os dados do JSON enviado na requisição
+    data = request.get_json()
+    comanda = data.get('comanda')
+    ordem = data.get('ordem')
+    print(f'ORDEM : {ordem}')
+
+    if int(ordem) != 0:
+        # Executando a consulta no banco de dados
+        dados = db.execute('''
+            SELECT pedido, id, ordem, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+            FROM pedidos WHERE comanda = ? AND ordem = ?
+            GROUP BY pedido
+        ''', comanda, int(ordem))
+        valor_pago = db.execute(
+            'SELECT valor_pago FROM valores_pagos WHERE comanda = ?', comanda)
+        total_comanda = db.execute('''
+            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
+        ''', comanda, int(ordem))
+        v_comanda_existe = db.execute(
+            'SELECT pedido FROM pedidos WHERE comanda = ? AND ordem = ?', comanda, int(ordem))
+
+        if v_comanda_existe:
+            preco_total = float(
+                total_comanda[0]['total']) if total_comanda else 0
+            preco_pago = float(
+                valor_pago[0]['valor_pago']) if valor_pago else 0
+            print(preco_pago)
+            print(preco_total)
+
+        # Retornando a lista de pedidos como JSON
+            return {'data': dados, 'preco': preco_total-preco_pago}
+    else:
+        # Chama a função para pegar o cardápio se ordem for 0
+        valor_pago = db.execute(
+            'SELECT valor_pago FROM valores_pagos WHERE comanda = ?', comanda)
+        total_comanda = db.execute('''
+            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
+        ''', comanda, 0)
+        v_comanda_existe = db.execute(
+            'SELECT pedido FROM pedidos WHERE comanda = ? AND ordem = ?', comanda, 0)
+
+        if v_comanda_existe:
+            preco_total = float(
+                total_comanda[0]['total']) if total_comanda else 0
+            preco_pago = float(
+                valor_pago[0]['valor_pago']) if valor_pago else 0
+            print(preco_pago)
+            print(preco_total)
+
+            dados = db.execute('''
+                SELECT pedido,id,ordem, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+                FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido
+            ''', comanda, 0)
+            print(dados)
+            print(type(dados))
+            return {'data': dados, 'preco': preco_total-preco_pago}
+    return {'data': '', 'preco': ''}
+
 
 @app.route('/faturamento', methods=['GET'])
 def faturamento():
     dia = datetime.now().date()  # Obter a data atual
-    
+
     # Executar a consulta e pegar o resultado
-    faturamento = db.execute('SELECT faturamento FROM pagamentos WHERE dia = ?', dia)
+    faturamento = db.execute(
+        'SELECT faturamento FROM pagamentos WHERE dia = ?', dia)
     dia_formatado = dia.strftime('%d/%m')
 
     if faturamento:  # Verifica se há algum resultado
         # Pega o valor do faturamento do primeiro resultado
         return jsonify({'dia': str(dia_formatado), 'faturamento': faturamento[0]['faturamento']})
     else:
-        return jsonify({'dia': str(dia_formatado), 'faturamento': 0})  # Se não houver faturamento
+        # Se não houver faturamento
+        return jsonify({'dia': str(dia_formatado), 'faturamento': 0})
 
 
 @app.route('/permitir', methods=['POST'])
@@ -74,20 +136,21 @@ def verif_quantidade():
     item = data.get('item')
     quantidade = data.get('quantidade')
 
-    if not item or not quantidade:
-        return jsonify({'erro': 'Item ou quantidade ausentes.'}), 400
+    categoria = db.execute(
+        'SELECT categoria_id FROM cardapio WHERE item = ?', item)
+    print(categoria[0]['categoria_id'])
+    print(type(categoria[0]['categoria_id']))
+    if categoria[0]['categoria_id'] != 2:
+        verificar_estoque = db.execute(
+            'SELECT quantidade FROM estoque WHERE item = ?', item)
 
-    verificar_estoque = db.execute(
-        'SELECT quantidade FROM estoque WHERE item = ?', item)
-
-    if verificar_estoque:
-        estoque_atual = float(verificar_estoque[0]['quantidade'])
-        if estoque_atual - float(quantidade) < 0:
-            return jsonify({'erro': 'Estoque insuficiente', 'quantidade': estoque_atual}), 200
-        else:
-            return jsonify({'sucesso': 'Pedido pode ser processado', 'quantidade': estoque_atual}), 200
-    else:
-        return jsonify({'erro': 'Item não encontrado'}), 404
+        if verificar_estoque:
+            estoque_atual = float(verificar_estoque[0]['quantidade'])
+            if estoque_atual - float(quantidade) < 0:
+                return {'erro': 'Estoque insuficiente', 'quantidade': estoque_atual}
+            else:
+                return {'erro': False, 'quantidade': estoque_atual}
+    return {'erro': False}
 
 
 @app.route('/verificar_quantidade_enviar', methods=['POST'])
@@ -95,23 +158,38 @@ def verificar_quantidade():
     data = request.json  # Use request.json para pegar o corpo da requisição
     item = data.get('item')
     quantidade = data.get('quantidade')
+    categoria = db.execute(
+        'SELECT categoria_id FROM cardapio WHERE item = ?', item)
+    if categoria[0]['categoria_id'] != 2:
+        verificar_estoque = db.execute(
+            'SELECT quantidade FROM estoque WHERE item = ?', item)
 
-    if not item or not quantidade:
-        return jsonify({'erro': 'Item ou quantidade ausentes.'}), 400
+        if verificar_estoque:
+            estoque_atual = float(verificar_estoque[0]['quantidade'])
+            if estoque_atual - float(quantidade) < 0:
+                return {'erro': True, 'quantidade': estoque_atual}
+            else:
+                return {'erro': False, 'quantidade': estoque_atual}
+    return {'erro': False}
 
-    verificar_estoque = db.execute(
-        'SELECT quantidade FROM estoque WHERE item = ?', item)
 
-    if verificar_estoque:
-        estoque_atual = float(verificar_estoque[0]['quantidade'])
-        if estoque_atual - float(quantidade) < 0:
-            return jsonify({'erro': True, 'quantidade': estoque_atual}), 200
+@app.route('/changeBrinde', methods=['POST'])
+def change_brinde():
+    datas = request.json
+    data = datas.get('pedido')
+    print(data)
+    pedidos = db.execute('SELECT item FROM cardapio')
+    pedidos_filtrados = []
+    cont = 0
+    for row in pedidos:
+        if cont < 2:
+            pedido = row['item']
+            if pedido.startswith(data):
+                cont += 1
+                pedidos_filtrados.append(pedido)
         else:
-            return jsonify({'erro': False, 'quantidade': estoque_atual}), 200
-
-    else:
-        return jsonify({'erro': 'Item não encontrado'}), 404
-
+            break
+    return {'data': pedidos_filtrados}
 
 # Manipulador de conexão
 
@@ -122,7 +200,7 @@ def handle_connect():
     dados_pedido = db.execute('SELECT * FROM pedidos')
     dados_estoque = db.execute('SELECT * FROM estoque')
     emit('initial_data', {'dados_pedido': dados_pedido,
-         'dados_estoque': dados_estoque})
+         'dados_estoque': dados_estoque}, broadcast=True)
 
 
 # Manipulador de desconexão
@@ -159,12 +237,12 @@ def handle_insert_order(data):
             print(categoria)
             if extra[i]:
                 print("extra", extra)
-                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra,username) VALUES (?, ?, ?,?,?,?,?,?)',
-                           comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer', extra[i], username)
+                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra,username,ordem) VALUES (?, ?, ?,?,?,?,?,?,?)',
+                           comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer', extra[i], username, 0)
             else:
                 print("nao tem extra")
-                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,username) VALUES (?, ?, ?,?,?,?,?,?)',
-                           comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer', username)
+                db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,username,ordem) VALUES (?, ?, ?,?,?,?,?,?,?)',
+                           comanda, pedido, float(quantidade), float(preco_unitario[0]['preco'])*float(quantidade), categoria, horario, 'A Fazer', username, 0)
             quantidade_anterior = db.execute(
                 'SELECT quantidade FROM estoque WHERE item = ?', pedido)
             dados_pedido = db.execute('SELECT * FROM pedidos')
@@ -190,28 +268,120 @@ def handle_insert_order(data):
         emit('error', {'message': str(e)})
 
 
+@socketio.on('atualizar_pedidos')
+def handle_atualizar_pedidos(data):
+    pedidos_alterados = data.get('pedidosAlterados')
+    for row in pedidos_alterados:
+        comanda = row['comanda']
+        pedido = row['pedido']
+        quantidade = row['quantidade']
+        extra = row['extra']
+        id = row['id']
+        if float(quantidade) < 1:
+            db.execute('DELETE FROM pedidos WHERE id = ?', id)
+        else:
+            db.execute(
+                'UPDATE pedidos SET comanda = ?,pedido = ?,quantidade = ?,extra=? WHERE id = ?', comanda, pedido, float(quantidade), extra, id)
+        dados_pedidos = db.execute('SELECT * FROM pedidos')
+        print(dados_pedidos)
+        emit('initial_data', {'dados_pedido': dados_pedidos}, broadcast=True)
+
+
+@socketio.on('desfazer_pagamento')
+def desfazer_pagamento(data):
+    comanda = data.get('comanda')
+    print(comanda)
+    db.execute(
+        'UPDATE pedidos SET ordem = ordem-? WHERE comanda = ? AND ordem>?', 1, comanda, 0)
+    preco = data.get('preco')
+    print(preco)
+    dia = datetime.now().date()
+    db.execute(
+        'UPDATE pagamentos SET faturamento = faturamento - ? WHERE dia = ?', float(preco), dia)
+    handle_get_cardapio(comanda)
+
+
+@socketio.on('pesquisa_comanda')
+def pesquisa_comanda(data):
+    comanda = data.get('comanda')
+    comandas = db.execute(
+        'SELECT comanda FROM pedidos WHERE ordem = ? GROUP BY comanda', 0)
+    comandas_filtradas = []
+    cont = 0
+    for row in comandas:
+        if cont < 3:
+            pedido = row['comanda']
+            if pedido.startswith(comanda):
+                cont += 1
+                comandas_filtradas.append(pedido)
+        else:
+            break
+    emit('comandas', comandas_filtradas)
+
+
+@socketio.on('pesquisa_abrir_comanda')
+def pesquisa_abrir_comanda(data):
+    comanda = data.get('comanda')
+    comandas = db.execute(
+        'SELECT comanda FROM pedidos WHERE ordem = ? GROUP BY comanda', 0)
+    comandas_filtradas = []
+    cont = 0
+    for row in comandas:
+        if cont < 3:
+            pedido = row['comanda']
+            if pedido.startswith(comanda):
+                cont += 1
+                comandas_filtradas.append(pedido)
+        else:
+            break
+    emit('comandas_abrir', comandas_filtradas)
+
+
 @socketio.on('delete_comanda')
 def handle_delete_comanda(data):
     try:
+        # Identificar a comanda recebida
         if type(data) == str:
             comanda = data
         else:
             comanda = data.get('fcomanda')
             valor_pago = float(data.get('valor_pago'))
             dia = datetime.now().date()
-            print(f'data de hoje : {dia}')
-            valor_do_dia = db.execute('SELECT * FROM pagamentos WHERE dia = ?',dia)
+            print(f'Data de hoje: {dia}')
+
+            # Verificar se já existe um pagamento registrado para o dia
+            valor_do_dia = db.execute(
+                # Adicionando tupla para os parâmetros
+                'SELECT * FROM pagamentos WHERE dia = ?', dia)
+
             if valor_do_dia:
                 antigo_valor = float(valor_do_dia[0]['faturamento'])
-                db.execute('UPDATE pagamentos SET faturamento = ? WHERE dia = ?',valor_pago+antigo_valor,dia)
+                db.execute(
+                    'UPDATE pagamentos SET faturamento = ? WHERE dia = ?',
+                    valor_pago + antigo_valor, dia
+                )
             else:
-                db.execute('INSERT INTO pagamentos, (dia, faturamento) VALUES (?,?)',dia,valor_pago)
+                # Corrigido o SQL, removendo a vírgula desnecessária
+                db.execute(
+                    'INSERT INTO pagamentos (dia, faturamento) VALUES (?, ?)',
+                    dia, valor_pago
+                )
 
+        # Apagar o valor pago referente à comanda
+        db.execute('DELETE FROM valores_pagos WHERE comanda = ?', comanda)
 
-        db.execute('DELETE FROM pedidos WHERE comanda = ?', (comanda,))
-        db.execute('DELETE FROM valores_pagos WHERE comanda = ?', (comanda,))
+        # Obter a última ordem da comanda
+        ord = db.execute(
+            'SELECT ordem FROM pedidos WHERE comanda = ?', comanda)
+        # Garantindo que 'ordem' existe
 
+        # Atualizar a ordem da comanda
+        db.execute('UPDATE pedidos SET ordem = ordem +? WHERE comanda = ?',
+                   1, comanda)
+
+        # Emitir o evento de comanda apagada
         emit('comanda_deleted', {'fcomanda': comanda}, broadcast=True)
+
     except Exception as e:
         print("Erro ao apagar comanda:", e)
         emit('error', {'message': str(e)})
@@ -219,19 +389,19 @@ def handle_delete_comanda(data):
 
 @socketio.on('pagar_parcial')
 def pagar_parcial(data):
-    
+
     valor_pago = data.get('valor_pago')
 
     dia = datetime.now().date()
     print(f'data de hoje : {dia}')
-    valor_do_dia = db.execute('SELECT * FROM pagamentos WHERE dia = ?',dia)
+    valor_do_dia = db.execute('SELECT * FROM pagamentos WHERE dia = ?', dia)
     if valor_do_dia:
         antigo_valor = float(valor_do_dia[0]['faturamento'])
-        db.execute('UPDATE pagamentos SET faturamento = ? WHERE dia = ?',float(valor_pago)+antigo_valor,dia)
+        db.execute('UPDATE pagamentos SET faturamento = ? WHERE dia = ?',
+                   float(valor_pago)+antigo_valor, dia)
     else:
-        db.execute('INSERT INTO pagamentos, (dia, faturamento) VALUES (?,?)',dia,float(valor_pago))
-
-
+        db.execute(
+            'INSERT INTO pagamentos (dia, faturamento) VALUES (?,?)', dia, float(valor_pago))
 
     comanda = data.get('fcomanda')
     preco_pago = db.execute(
@@ -243,17 +413,16 @@ def pagar_parcial(data):
 
         valor_total = float(valor_pago)
     else:
-        preco_pago = db.execute(
-            'SELECT valor_pago FROM valores_pagos WHERE comanda = ?', comanda)
         valor_total = float(valor_pago) + \
             float(preco_pago[0]['valor_pago'])
         db.execute(
             'UPDATE valores_pagos SET valor_pago = ? WHERE comanda = ?', valor_total, comanda)
     total_comanda = db.execute('''
-            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ?
-        ''', comanda)
+            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
+        ''', comanda, 0)
     if valor_total >= float(total_comanda[0]['total']):
         handle_delete_comanda(comanda)
+    handle_get_cardapio(comanda)
 
 
 @socketio.on('pesquisa')
@@ -412,18 +581,20 @@ def handle_get_cardapio(data):
     try:
         if type(data) == str:
             fcomanda = data
+
         else:
             fcomanda = data.get('fcomanda')
+
         if not fcomanda:
             raise ValueError('Comanda não informada')
 
         valor_pago = db.execute(
             'SELECT valor_pago FROM valores_pagos WHERE comanda = ?', fcomanda)
         total_comanda = db.execute('''
-            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ?
-        ''', fcomanda)
+            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
+        ''', fcomanda, 0)
         v_comanda_existe = db.execute(
-            'SELECT pedido FROM pedidos WHERE comanda = ?', fcomanda)
+            'SELECT pedido FROM pedidos WHERE comanda = ? AND ordem = ?', fcomanda, 0)
 
         if v_comanda_existe:
             preco_total = float(
@@ -434,16 +605,17 @@ def handle_get_cardapio(data):
             print(preco_total)
 
             dados = db.execute('''
-                SELECT pedido,id, SUM(quantidade) AS quantidade, SUM(preco) AS preco
-                FROM pedidos WHERE comanda =? GROUP BY pedido
-            ''', fcomanda)
+                SELECT pedido,id,ordem, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+                FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido
+            ''', fcomanda, 0)
             print(dados)
             print(type(dados))
             # Emitir os dados mais recentes da comanda e atualizar no frontend
-            emit('preco', {'preco': preco_total - preco_pago,
-                 'dados': dados, 'comanda': fcomanda}, broadcast=True)
+            preco_a_pagar = preco_total-preco_pago
+            emit('preco', {'preco_a_pagar': preco_a_pagar, 'preco_total': preco_total, 'preco_pago': preco_pago,
+                           'dados': dados, 'comanda': fcomanda}, broadcast=True)
         else:
-            emit('preco', {'preco': '', 'dados': '',
+            emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': '',
                  'comanda': fcomanda}, broadcast=True)
 
     except Exception as e:

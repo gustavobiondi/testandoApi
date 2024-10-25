@@ -3,7 +3,7 @@ import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
 import io from 'socket.io-client';
 
-export default class BarmanScreen extends React.Component {
+export default class Cozinha extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -14,7 +14,7 @@ export default class BarmanScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://127.0.0.1:5000');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
