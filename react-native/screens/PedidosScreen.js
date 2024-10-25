@@ -13,7 +13,7 @@ export default class PedidosScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://127.0.0.1:5000');
+    this.socket = io('http://192.168.15.16:5000');
 
     this.socket.on('initial_data', (dados) => {
       console.log(dados);

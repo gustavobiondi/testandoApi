@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, View, Text, StyleSheet, Button, TextInput, TouchableOpacity} from 'react-native';
+import { FlatList, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView} from 'react-native';
 
 import io from 'socket.io-client';
 
@@ -26,7 +26,7 @@ class ComandaScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://127.0.0.1:5000');
+    this.socket = io('http://192.168.15.16:5000');
 
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
@@ -122,7 +122,7 @@ class ComandaScreen extends React.Component {
   changeBrinde = (pedido) => {
     this.setState({ Brinde:pedido});
     if (pedido) {
-      fetch('http://127.0.0.1:5000/changeBrinde',{
+      fetch('http://192.168.15.16:5000/changeBrinde',{
         method:'POST',
         headers:{
           'Content-Type': 'application/json'
@@ -167,7 +167,7 @@ class ComandaScreen extends React.Component {
       this.setState(prevState=>({
         ordem:ordem-1
       }))
-      fetch('http://127.0.0.1:5000/pegar_pedidos', {
+      fetch('http://192.168.15.16:5000/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -191,7 +191,7 @@ class ComandaScreen extends React.Component {
       this.setState(prevState=>({
         ordem:ordem+1
       }))
-      fetch('http://127.0.0.1:5000/pegar_pedidos', {
+      fetch('http://192.168.15.16:5000/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -217,18 +217,13 @@ class ComandaScreen extends React.Component {
 
     return (
       <View style={styles.container}>
-        <View style={[styles.container,{flexDirection:'row'}]}>
-        <Text>Comanda = {this.state.fcomanda}</Text>
-        <Button title='<' onPress={()=>this.atualizarOrdem('+',this.state.ordem)}/>
-        <Text>{this.state.ordem}</Text>
-        <Button title='>' onPress={()=>this.atualizarOrdem('-',this.state.ordem)}/>
-        </View>
-
-        <View style={styles.tableHeader}>
-          <Text style={styles.headerText}>Pedido</Text>
-          <Text style={styles.headerText}>Quantidade</Text>
-          <Text style={styles.headerText}>Valor</Text>
-          {!this.state.showBotoes && (
+        {/* Header da comanda e botões de ordem */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text>Comanda {this.state.fcomanda}</Text>
+            <Button title='<' onPress={() => this.atualizarOrdem('+', this.state.ordem)} />
+            <Text>{this.state.ordem}</Text>
+            <Button title='>' onPress={() => this.atualizarOrdem('-', this.state.ordem)} />
+            {!this.state.showBotoes && (
           <Button title='editar' onPress={this.aparecerBotoes}/>
           )}
           {this.state.showBotoes && (
@@ -239,98 +234,167 @@ class ComandaScreen extends React.Component {
             </View>
           )}
         </View>
-
+  
+        {/* Tabela de pedidos */}
+        <View style={styles.tableHeader}>
+          <Text style={styles.headerText}>Pedido</Text>
+          <Text style={styles.headerText}>Quant</Text>
+          <Text style={styles.headerText}>Valor</Text>
+        </View>
+  
         <FlatList
           data={this.state.data}
-          renderItem={({ item,index }) => (
+          renderItem={({ item, index }) => (
             <View style={styles.tableRow}>
               <Text style={styles.itemText}>{item.pedido}</Text>
               <Text style={styles.itemText}>{item.quantidade}</Text>
               <Text style={styles.itemText}>{item.preco}</Text>
               {this.state.showBotoes && (
-                <View style={styles.tableRow}>
-                <Button title='-'  color={'red'} onPress={()=>this.apagarPedidos(index)}/>
-                <Text>    </Text>
-                <Button title='+' onPress={()=>this.adicionarPedidos(index)}/>
+                <View style={styles.buttonRow}>
+                  <Button title='-' color={'red'} onPress={() => this.apagarPedidos(index)} />
+                  <Button title='+' onPress={() => this.adicionarPedidos(index)} />
                 </View>
               )}
             </View>
           )}
           keyExtractor={(item, index) => index.toString()}
         />
-        {this.state.ordem===0?(
-        <View style={styles.summary}>
-          <View style={{flexDirection:'row'}}>
-            <View style={{paddingHorizontal:30,alignItems:'center'}}>
-            <Text style ={styles.totalText}>PREÇO_PAGO</Text>
-          <Text style={styles.totalValue}>{this.state.preco_pago}</Text>
-          </View>
-          <View style={{paddingHorizontal:30,alignItems:'center'}}  >
-          <Text style={styles.totalText}>PRECO A PAGAR</Text>
-          <Text style={styles.totalValue}>{this.state.preco}</Text>
-          <View  style={{flexDirection:'row',padding:15}}>
-          <Button title='Tudo Pago' onPress={this.apagarComanda} />
-          {!this.state.showDez?(
-          <Button title='10%' onPress={() =>this.setState(prevState=>({preco:prevState.preco*1.1,showDez:prevState.preco}))}/>
-          ):(<Button title='X' color={'red'} onPress={()=>this.setState(prevState=>({preco:prevState.showDez,showDez:null}))}/>)}
-          {!this.state.ShowBrinde ?(
-          <Button title='Adicionar Brinde' onPress={()=>this.setState({ShowBrinde:true})}/>
-          ):(
-            <View>
-              <TextInput
-              placeholder='brinde'
-              onChangeText={this.changeBrinde}
-              value={this.state.Brinde}
-              />
-              {this.state.brindeFiltrado &&(
-                this.state.brindeFiltrado.map((item,index)=>(
-                  <TouchableOpacity key={index} style={[styles.container,{alignItems:'center',padding:8}]} onPress={() => this.selecionar(item)}>
-                    <Text style={{fontSize:20}}>{item}</Text>
-          
-                  </TouchableOpacity>
-                ))
-              )}
-              <Button title='OK' onPress={()=>this.setState(prevState=>({ShowBrinde:false}))}/>
+  
+        {/* Resumo e opções de pagamento */}
+        {this.state.ordem === 0 ? (
+          <View style={styles.summary}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.totalText}>PREÇO_PAGO</Text>
+                <Text style={styles.totalValue}>{this.state.preco_pago}</Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.totalText}>PRECO A PAGAR</Text>
+                <Text style={styles.totalValue}>{this.state.preco}</Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.totalText}>PREÇO TOTAL</Text>
+                <Text style={styles.totalValue}>{this.state.preco_total}</Text>
+              </View>
             </View>
-          )}
+  
+            <View style={styles.buttonRow}>
+              <Button title='Tudo Pago' onPress={this.apagarComanda} />
+              {!this.state.showDez ? (
+                <Button title='10%' onPress={() => this.setState(prevState => ({ preco: prevState.preco * 1.1, showDez: prevState.preco }))} />
+              ) : (
+                <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
+              )}
+              {!this.state.ShowBrinde ? (
+                <Button title='Adicionar Brinde' onPress={() => this.setState({ ShowBrinde: true })} />
+              ) : (
+                <View>
+                  <TextInput
+                    placeholder='Brinde'
+                    onChangeText={this.changeBrinde}
+                    value={this.state.Brinde}
+                    style={styles.input}
+                  />
+                  {this.state.brindeFiltrado && this.state.brindeFiltrado.map((item, index) => (
+                    <TouchableOpacity key={index} style={styles.brindeContainer} onPress={() => this.selecionar(item)}>
+                      <Text style={styles.brindeText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <Button title='OK' onPress={() => this.setState({ ShowBrinde: false })} />
+                </View>
+              )}
+            </View>
+              <KeyboardAvoidingView style={{flexDirection:'row'}} behavior='padding' >
+            <TextInput
+              placeholder="Quanto?"
+              onChangeText={this.changeValor}
+              value={this.state.valor_pago}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+            <Button title='Pagar Parcial' onPress={this.pagarParcial} />
+            </KeyboardAvoidingView>
           </View>
-          </View>
-          <View style={{paddingHorizontal:30,alignItems:'center'}}>
-          <Text style={styles.totalText}>PREÇO TOTAL</Text>
-          <Text style={styles.totalValue}>{this.state.preco_total}</Text>
-          </View>
-          </View>
-          <View  style={{flexDirection:'row',padding:15}}>
-          <TextInput
-            placeholder="Quanto?"
-            onChangeText={this.changeValor}
-            value={this.state.valor_pago}
-            keyboardType="numeric"
-            style={styles.input}
-          />
-          <Button title='Pagar Parcial' onPress={this.pagarParcial} />
-          </View>
-        </View>
-        ):(this.state.ordem===1 && this.state.data?(
-          <Button title='desfazer pagamento' onPress={this.desfazerPagamento}/>
-        ):(
-          <View></View>
-        ))}
+        ) : (
+          this.state.ordem === 1 && this.state.data && <Button title='Desfazer Pagamento' onPress={this.desfazerPagamento} />
+        )}
       </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
-  tableHeader: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#ddd', marginBottom: 10, backgroundColor: '#f7f7f7' },
-  headerText: { flex: 1, fontSize: 18, fontWeight: 'bold', textAlign: 'left' },
-  tableRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' },
-  itemText: { flex: 1, fontSize: 16, textAlign: 'left' },
-  summary: { marginTop: 20, alignItems: 'center' },
-  totalText: { fontSize: 18, fontWeight: 'bold' },
-  totalValue: { fontSize: 24, marginVertical: 10 },
-  input: { height: 40, borderColor: '#ddd', borderWidth: 1, marginBottom: 10, paddingHorizontal: 10, borderRadius: 5, width: '80%' }
-});
-
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginBottom: 10,
+    backgroundColor: '#f7f7f7',
+  },
+  headerText: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  itemText: {
+    flex: 1,
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  summary: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  totalText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  totalValue: {
+    fontSize: 24,
+    marginVertical: 10,
+    textAlign: 'center',
+  },
+  input: {
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginVertical: 10,
+    width: '60%',
+    alignSelf: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: 10,
+  },
+  brindeContainer: {
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 5,
+    borderRadius: 5,
+  },
+  brindeText: {
+    fontSize: 20,
+  },
+}); 
 export default ComandaScreen;

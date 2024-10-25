@@ -46,7 +46,7 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io('http://127.0.0.1:5000');
+    this.socket = io('http://192.168.15.16:5000');
     this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
     this.socket.on('preco', (data) => this.setState({ preco: data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total}));
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
@@ -135,7 +135,7 @@ export default class HomeScreen extends React.Component {
       this.setState({ comand: '', pedido: '', pedidosSelecionados: [], quantidadeSelecionada: [], extraSelecionados: [], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false });
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
-      fetch('http://127.0.0.1:5000/verificar_quantidade', {  // Endpoint correto
+      fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -222,7 +222,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, quantidade} = this.state;
-    fetch('http://127.0.0.1:5000/verificar_quantidade', {  // Endpoint correto
+    fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -311,7 +311,6 @@ export default class HomeScreen extends React.Component {
                 />
               )}
         
-              <Button  title="Adicionar" onPress={this.adicionarPedido} />
             </View>
             {quantidadeEstoqueMensagem && (
               alert(`Quantidade Insuficiente : apenas ${quantidadeEstoqueMensagem} no Estoque`),
@@ -335,9 +334,10 @@ export default class HomeScreen extends React.Component {
                     </TouchableOpacity>
                   ))
             )}
-  
-  
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+            <Button  title="Adicionar" onPress={this.adicionarPedido} />
             <Button title="Enviar pedido" onPress={this.sendData} />
+            </View>
   
             {this.state.showPedidoSelecionado && (
               <View>

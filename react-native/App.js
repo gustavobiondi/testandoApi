@@ -29,7 +29,7 @@ function HomeStack() {
       <Stack.Screen 
         name="ComandaScreen" 
         component={ComandaScreen} 
-        options={{ headerShown: false }} // Oculta o cabeçalho
+       // Oculta o cabeçalho
       />
     </Stack.Navigator>
   );

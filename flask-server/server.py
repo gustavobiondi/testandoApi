@@ -565,8 +565,8 @@ def atualizar_comanda(data):
         print(dados)
         print(type(dados))
         # Emitir os dados mais recentes da comanda e atualizar no frontend
-
-        emit('preco', {'preco': preco_total - preco_pago,
+        preco_a_pagar = preco_total-preco_pago
+        emit('preco', {'preco_a_pagar': preco_a_pagar, 'preco_total': preco_total, 'preco_pago': preco_pago,
              'dados': dados, 'comanda': comanda}, broadcast=True)
         estoque = db.execute('SELECT * FROM estoque')
         emit('update_estoque', estoque, broadcast=True)

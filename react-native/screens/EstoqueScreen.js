@@ -14,7 +14,7 @@
     }
 
     componentDidMount() {
-      this.socket = io('http://127.0.0.1:5000');
+      this.socket = io('http://192.168.15.16:5000');
 
       this.socket.on('connect', () => {
         console.log('Conectado ao servidor');
