@@ -336,7 +336,9 @@ export default class HomeScreen extends React.Component {
             )}
             <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
             <Button  title="Adicionar" onPress={this.adicionarPedido} />
+            {((!this.state.showPedido && this.state.showPedidoSelecionado)||(!this.state.showPedidoSelecionado && this.state.showPedido)) &&(
             <Button title="Enviar pedido" onPress={this.sendData} />
+            )}
             </View>
   
             {this.state.showPedidoSelecionado && (

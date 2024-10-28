@@ -72,56 +72,74 @@ export default class BarmanScreen extends React.Component {
 
   render() {
     const dataToShow = this.state.showFiltrado
-      ? this.state.data
-      : this.state.data_filtrado;
-
+      ? this.state.data_filtrado
+      : this.state.data;
+  
     return (
       <View style={styles.container}>
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Pedido</Text>
           <Text style={styles.headerText}>Horario Envio</Text>
           <Text style={styles.headerText}>Estado</Text>
-      
-          {this.state.showFiltrado ? (
-            <Button title='Filtrar' onPress={this.filtrar} />
-          ) : (
-            <Button title='Todos' onPress={this.filtrar} />
-          )}
+          <Button
+            title={this.state.showFiltrado ? 'Todos' : 'Filtrar'}
+            onPress={this.filtrar}
+          />
         </View>
-
+        
         <FlatList
           data={dataToShow}
+          keyExtractor={(item, index) => index.toString()}
           renderItem={({ item, index }) => (
+            <View >
+  
+              {this.state.showExtra[index] ? (
             <View style={styles.tableRow}>
-              <Text style={styles.itemText}>{item.quantidade} {item.pedido}  {item.extra} ({item.comanda})</Text>
-              
-              {this.state.showExtra[index] ?(
-                <Button title='-' color={'red'} onPress={() => this.extra(index)} />
-              ):(
-              <Button title='+' onPress={() => this.extra(index)} />
-              )}
-              
-              {this.state.showExtra[index] && (
-                <Text style={styles.itemText}>{this.state.ingredientes[index]}</Text>
-              )}
-
-              <Text style={styles.itemText}>{item.inicio}</Text>
-              <Text style={styles.itemText}>{item.estado}</Text>
-              
-              {item.estado === "Em Preparo" ? (
-                <Button title='Pronto' onPress={() => this.alterar_estado(item.id, 'Pronto')} />
-              ) : item.estado === "A Fazer" ? (
-                <Button title='Começar' onPress={() => this.alterar_estado(item.id, 'Em Preparo')} />
+                  <Text style={styles.itemText}>
+                {item.quantidade} {item.pedido} {item.extra} ({item.comanda})
+              </Text>
+                  <Button
+                    title="-"
+                    color="red"
+                    onPress={() => this.extra(index)}
+                  />
+                  <Text style={styles.itemText}>
+                    {this.state.ingredientes[index]}
+                  </Text>
+                </View>
               ) : (
-                <Button title='Desfazer' onPress={() => this.alterar_estado(item.id, 'A Fazer')} />
+                <View style={styles.tableRow}>
+                  <Text style={styles.itemText}>
+                {item.quantidade} {item.pedido} {item.extra} ({item.comanda})
+              </Text>
+                  <Button title="+" onPress={() => this.extra(index)} />
+                  <Text style={styles.itemText}>{item.inicio}</Text>
+                  <Text style={styles.itemText}>{item.estado}</Text>
+                  {item.estado === 'Em Preparo' ? (
+                    <Button
+                      title="Pronto"
+                      onPress={() => this.alterar_estado(item.id, 'Pronto')}
+                    />
+                  ) : item.estado === 'A Fazer' ? (
+                    <Button
+                      title="Começar"
+                      onPress={() => this.alterar_estado(item.id, 'Em Preparo')}
+                    />
+                  ) : (
+                    <Button
+                      title="Desfazer"
+                      onPress={() => this.alterar_estado(item.id, 'A Fazer')}
+                    />
+                  )}
+                </View>
               )}
             </View>
           )}
-          keyExtractor={(item, index) => index.toString()}
         />
       </View>
     );
   }
+  
 }
 
 

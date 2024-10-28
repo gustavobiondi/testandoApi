@@ -285,10 +285,22 @@ class ComandaScreen extends React.Component {
               ) : (
                 <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
               )}
-              {!this.state.ShowBrinde ? (
-                <Button title='Adicionar Brinde' onPress={() => this.setState({ ShowBrinde: true })} />
+              <View>
+            {!this.state.ShowBrinde ? (
+              <View style={styles.buttonRow}>
+              <Button title='Tudo Pago' onPress={this.apagarComanda} />
+
+              {!this.state.showDez ? (
+                <Button title='10%' onPress={() => this.setState(prevState => ({ preco: Math.floor(prevState.preco * 1.1), showDez: prevState.preco }))} />
               ) : (
-                <View>
+                <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
+              )}
+
+                <Button title='Adicionar Brinde' onPress={() => this.setState({ ShowBrinde: true })} />
+                </View>
+              ):(
+
+                <View style={styles.buttonRow}>
                   <TextInput
                     placeholder='Brinde'
                     onChangeText={this.changeBrinde}
@@ -303,6 +315,7 @@ class ComandaScreen extends React.Component {
                   <Button title='OK' onPress={() => this.setState({ ShowBrinde: false })} />
                 </View>
               )}
+            </View>
             </View>
               <KeyboardAvoidingView style={{flexDirection:'row'}} behavior='padding' >
             <TextInput
