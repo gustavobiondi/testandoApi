@@ -14,6 +14,7 @@ export default class HomeScreen extends React.Component {
       comand: '',
       pedido: '',
       extra: '',
+      nome:'',
       preco: null,
       preco_total:0,
       preco_pago:0,
@@ -26,6 +27,7 @@ export default class HomeScreen extends React.Component {
       quantidadeSelecionada: [],
       pedidosSelecionados: [],
       extraSelecionados: [],
+      nomeSelecionado:[],
       showPedido: false,
       showComandaPedido: false,
       showComanda:false,
@@ -33,7 +35,6 @@ export default class HomeScreen extends React.Component {
       showPedidoSelecionado: false,
       showExtra: false,
       quantidade: 1,
-      quantidadeEstoqueMensagem: null,
       quantidadeRestanteMensagem: null,
       pedidoRestanteMensagem: null,
     };
@@ -67,8 +68,9 @@ export default class HomeScreen extends React.Component {
             showQuantidade: false,
             showPedidoSelecionado: false,
             showExtra: false,
-            quantidadeEstoqueMensagem: data.quantidade,
-          });
+
+          }); 
+          alert(`Quantidade Insuficiente : apenas ${data.quantidade} no Estoque`)
         } else {
           const { comand, pedido, quantidade, extra } = this.state;
           const currentTime = this.getCurrentTime();
@@ -121,18 +123,20 @@ export default class HomeScreen extends React.Component {
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
   sendData = () => {
-    const { comand, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, pedido, quantidade, extra, username } = this.state;
+    const { comand, nome,nomeSelecionado, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, pedido, quantidade, extra, username} = this.state;
     const currentTime = this.getCurrentTime();
+    console.log(nomeSelecionado)
     if (comand && pedidosSelecionados.length && quantidadeSelecionada.length) {
       this.socket.emit('insert_order', { 
         comanda: comand, 
         pedidosSelecionados, 
         quantidadeSelecionada,
         extraSelecionados,
+        nomeSelecionado,
         horario: currentTime,
         username:username,
       });
-      this.setState({ comand: '', pedido: '', pedidosSelecionados: [], quantidadeSelecionada: [], extraSelecionados: [], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false });
+      this.setState({ comand: '', pedido: '',pedidosSelecionados: [], quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false,nome:'',nomeSelecionado:[],showComanda:false});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
       fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
@@ -153,24 +157,32 @@ export default class HomeScreen extends React.Component {
           comand: '',
           pedido: '',
           extra: '',
+          nome:'',
           quantidade: 1,
           showQuantidade: false,
           showPedidoSelecionado: false,
           showExtra: false,
-          quantidadeEstoqueMensagem: data.quantidade,
-        });
+          comanda_filtrada:[],
+          comanda_filtrada_abrir:[],
+        })
+        alert('quantidade estoque insuficienet restam apenas {data.quantidade}')
+        ;
       } else {
-        const { comand, pedido, quantidade, extra,username} = this.state;
+        const { comand, pedido,nomeSelecionado, quantidade, extra,username,nome} = this.state;
         const currentTime = this.getCurrentTime();
         this.socket.emit('insert_order', { 
           comanda: comand, 
           pedidosSelecionados: [pedido], 
           quantidadeSelecionada: [quantidade],
           extraSelecionados: [extra],
+          nomeSelecionado:[nome],
           horario: currentTime,
+          comanda_filtrada:[],
+          comanda_filtrada_abrir:[],
+          showExtra:false,
           username:username,
         });
-        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '' });
+        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:''});
       }
     })
     .catch(error => console.error('Erro ao adicionar pedido:', error));
@@ -181,12 +193,13 @@ export default class HomeScreen extends React.Component {
   };
 
   getCardapio = () => {
-    const { fcomanda } = this.state;
+    const { fcomanda,username } = this.state;
     if (fcomanda) {
       this.socket.emit('get_cardapio', { fcomanda });
       this.socket.once('preco', (data) => {
         console.log(data)
-        this.props.navigation.navigate('ComandaScreen', { data: data.dados, fcomanda: this.state.fcomanda, preco: data.preco_a_pagar,preco_total:data.preco_total,preco_pago:data.preco_pago });
+        this.setState({fcomanda:'',comand:'',showPedido:false,showQuantidade:false,pedido:'',showExtra:'',extra:''})
+        this.props.navigation.navigate('Comanda', { data: data.dados, fcomanda: this.state.fcomanda, preco: data.preco_a_pagar,preco_total:data.preco_total,preco_pago:data.preco_pago, username:username,nomes:data.nomes});
       });
     } else {
       console.warn('Por favor, insira a comanda.');
@@ -200,7 +213,7 @@ export default class HomeScreen extends React.Component {
       this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda });
       this.setState((prevState) => ({ preco: prevState.preco - valorNum, valor_pago: '' }));
     } else {
-      console.warn('Insira um valor válido para pagamento parcial.');
+      console.warn('Insira um valor vÃ¡lido para pagamento parcial.');
     }
   };
 
@@ -240,20 +253,24 @@ export default class HomeScreen extends React.Component {
                 showQuantidade: false,
                 pedido: '',
                 extra: '',
+                nome:'',
                 showPedido: false,
                 showExtra: false,
-                quantidadeEstoqueMensagem: data.quantidade || 'Estoque insuficiente',
+                
             });
+            alert(`Quantidade Insuficiente : apenas ${quantidadeEstoqueMensagem} no Estoque`)
         } else {
-            const { pedido, quantidade, extra } = this.state;
+            const { pedido, quantidade, extra, nome} = this.state;
             this.setState((prevState) => ({
                 pedidosSelecionados: [...prevState.pedidosSelecionados, pedido],
                 quantidadeSelecionada: [...prevState.quantidadeSelecionada, quantidade],
                 extraSelecionados: extra ? [...prevState.extraSelecionados, extra] : [...prevState.extraSelecionados, ''],
+                nomeSelecionado: nome? [...prevState.nomeSelecionado, nome] : [...prevState.nomeSelecionado, ''],
                 quantidade: 1,
                 showQuantidade: false,
                 pedido: '',
                 extra: '',
+                nome:'',
                 showPedidoSelecionado: true,
                 showPedido: false,
                 showExtra: false,
@@ -265,27 +282,34 @@ export default class HomeScreen extends React.Component {
 
 
   adicionarPedidoSelecionado = (index) => this.setState((prevState) => ({ quantidadeSelecionada: prevState.quantidadeSelecionada.map((q, i) => (i === index ? q + 1 : q)) }));
+  removerPedidoSelecionado = (index)=> {
+    this.setState((prevState)=>({
+    quantidadeSelecionada:prevState.quantidadeSelecionada.map((q,i)=>(i===index ? q-1:q)),
+    }))
+    if(this.state.quantidadeSelecionada[index]-1===0){
+      console.log(this.state.quantidadeSelecionada[index])
+    const quantidadeFiltrada = this.state.quantidadeSelecionada.filter((item,i)=>i!==index)
+    const pedidoFilrado = this.state.pedidosSelecionados.filter((item,i)=>index!==i)
+    if(!this.pedidosSelecionados){this.setState({showPedidoSelecionado:false})}
+    this.setState({quantidadeSelecionada:quantidadeFiltrada,pedidosSelecionados:pedidoFilrado})
+    }
+    ;}
   changeExtra = (extra) => this.setState({ extra });
-
   render() {
-    const {quantidadeEstoqueMensagem,quantidadeRestanteMensagem,pedidoRestanteMensagem} = this.state
+    const {quantidadeRestanteMensagem,pedidoRestanteMensagem} = this.state
     return (
       <View style={styles.mainContainer} >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.container}>
-            {quantidadeRestanteMensagem && (
-              alert(`Só tem ${quantidadeRestanteMensagem} ${pedidoRestanteMensagem}`),
-              this.setState({quantidadeRestanteMensagem:null,pedidoRestanteMensagem:null})
-            )}
             <View style={[styles.container,styles.row]}>
-              {/* Campo de Comanda (reduzido e à esquerda) */}
+              {/* Campo de Comanda (reduzido e Ã  esquerda) */}
               <TextInput
                 placeholder="Comanda"
                 onChangeText={this.changeComanda}
                 value={this.state.comand}
-                style={[styles.input, styles.inputComanda]} // Estilo específico para o campo Comanda
+                style={[styles.input, styles.inputComanda]} // Estilo especÃ­fico para o campo Comanda
               />
-              {/* Campo de Pedido (à direita) */}
+              {/* Campo de Pedido (Ã  direita) */}
               <TextInput
                 placeholder="Digite o pedido"
                 onChangeText={this.changePedido}
@@ -310,13 +334,11 @@ export default class HomeScreen extends React.Component {
                 style={[styles.input, styles.inputPedido]}
                 />
               )}
+              
         
             </View>
-            {quantidadeEstoqueMensagem && (
-              alert(`Quantidade Insuficiente : apenas ${quantidadeEstoqueMensagem} no Estoque`),
-              this.setState({quantidadeEstoqueMensagem:null})
-            )}
-
+           
+          
             {this.state.showComandaPedido && (
                 this.state.comanda_filtrada.map((item,index)=>(
                     <TouchableOpacity key={index} style={[styles.container,{alignItems:'left',padding:8}]} onPress={() => this.selecionarComandaPedido(item)}>
@@ -334,6 +356,14 @@ export default class HomeScreen extends React.Component {
                     </TouchableOpacity>
                   ))
             )}
+            {this.state.pedido && (
+                <TextInput
+                placeholder="Nome (opicional)"
+                onChangeText={(nome)=>this.setState({nome})}
+                value={this.state.nome}
+                style={[styles.input, styles.inputPedido]}
+                />
+              )}
             <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
             <Button  title="Adicionar" onPress={this.adicionarPedido} />
             {((!this.state.showPedido && this.state.showPedidoSelecionado)||(!this.state.showPedidoSelecionado && this.state.showPedido)) &&(
@@ -380,6 +410,8 @@ export default class HomeScreen extends React.Component {
         </ScrollView>
       </View>
     ); } }
+
+    export const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
 
 const styles = StyleSheet.create({

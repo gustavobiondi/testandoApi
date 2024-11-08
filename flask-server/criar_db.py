@@ -5,6 +5,8 @@ db = SQL('sqlite:///dados.db')
 
 # Adicionando a coluna 'liberado' à tabela 'usuarios
 
-dados=db.execute('SELECT * FROM pedidos')
-# Imprimindo os dados
+
+
+dados = db.execute('SELECT * FROM valores_pagos')
+
 print(dados)

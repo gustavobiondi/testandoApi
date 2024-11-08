@@ -9,6 +9,7 @@ export default class PedidosScreen extends React.Component {
       data: [],
       showEditar: false,
       pedidosAlterados: [],
+      dados_antigos:[],
     };
   }
 
@@ -57,26 +58,34 @@ export default class PedidosScreen extends React.Component {
     this.setState({ showEditar: false });
   };
 
+  handleCancelar =()=>{
+    this.setState({data:this.state.dados_antigos})
+    this.setState({showEditar:false})
+  }
+
   handleDelete = (index) => {
     this.alterarPedido('quantidade', '0', index);
   };
 
   render() {
+    const {data} = this.state
     return (
       <View style={styles.container}>
+         {!this.state.showEditar ? (
+            <Button title="Editar" onPress={() => this.setState({ showEditar: true, dados_antigos:data })} />
+          ) : (
+            <View style={{flexDirection:"row",justifyContent:'space-between',alignItems:'center'}}>
+            <Button title="Cancelar" color={'red'} onPress={this.handleCancelar}/>
+            <Button title="Confirmar" onPress={this.handleConfirmar} />
+          </View>
+          )}
         <View style={styles.tableHeader}>
-          <Text style={styles.headerText}>Comanda</Text>
-          <Text style={styles.headerText}>Quantidade</Text>
+          <Text style={styles.headerText}>Cmd</Text>
+          <Text style={styles.headerText}>Quant</Text>
           <Text style={styles.headerText}>Pedido</Text>
           <Text style={styles.headerText}>Extra</Text>
-          <Text style={styles.headerText}>Envio</Text>
           <Text style={styles.headerText}>User</Text>
-          
-          {!this.state.showEditar ? (
-            <Button title="Editar" onPress={() => this.setState({ showEditar: true })} />
-          ) : (
-            <Button title="Confirmar" onPress={this.handleConfirmar} />
-          )}
+      
         </View>
         <FlatList
           data={this.state.data}
