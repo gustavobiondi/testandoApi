@@ -1,0 +1,11 @@
+# Ignore the virtual environment directory
+flask-server/venv/
+
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore other common files and folders
+*.log
+*.env
