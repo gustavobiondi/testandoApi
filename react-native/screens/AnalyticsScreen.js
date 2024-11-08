@@ -27,7 +27,7 @@ export default class Analytics extends React.Component {
       this.setState({ showAnalytics: true });
 
       // Faz a requisição ao backend para obter o faturamento
-      fetch("http://127.0.0.1:5000/faturamento", {
+      fetch("http://192.168.15.16:5000/faturamento", {
         method: "GET",
       })
         .then((resp) => resp.json())

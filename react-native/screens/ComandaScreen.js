@@ -2,14 +2,19 @@ import React from 'react';
 import { FlatList, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView} from 'react-native';
 
 import io from 'socket.io-client';
+import { getCurrentTime } from './HomeScreen';
 
 
 class ComandaScreen extends React.Component {
+  
+
   constructor(props) {
     super(props);
-    const { data, fcomanda, preco,preco_total,preco_pago } = this.props.route.params;
+    const { data, fcomanda, preco,preco_total,preco_pago,username,nomes} = this.props.route.params;
     this.state = {
+      username,
       data,
+      dataGeral:data, 
       fcomanda,
       preco,
       preco_total,
@@ -21,23 +26,32 @@ class ComandaScreen extends React.Component {
       showDez:null,
       Brinde:'',
       ShowBrinde:false,
+      nomes,
       brindeFiltrado:[],
+      
     };
   }
 
   componentDidMount() {
+    console.log(this.state.nomes)
+
     this.socket = io('http://192.168.15.16:5000');
 
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
 
     this.socket.on('preco', ( data ) => {
+     
+      console.log(data.dados)
       if (data.comanda === this.state.fcomanda){
-        if (data.dados){
-          data.dados.filter(item=>item.ordem===0)
-        }
 
-      this.setState({ data: data.dados, preco:data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total });
+       if (data.nomes){
+        console.log(data.nomes)
+        this.setState({nomes:data.nomes})
+       }
+       
+      this.setState({ data: data.dados, dataGeral:data.dados ,preco:data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total });
+      
       }
     });
     
@@ -66,6 +80,7 @@ class ComandaScreen extends React.Component {
   apagarComanda = () => {
     if (this.state.data){
     const { fcomanda,preco } = this.state;
+    this.setState({showDez:false})
     this.socket.emit('delete_comanda', { fcomanda: fcomanda, valor_pago:preco });
     }
   }
@@ -159,6 +174,16 @@ class ComandaScreen extends React.Component {
     })
   }
 
+  confirmarBrinde = () =>{
+    const {fcomanda, Brinde,username} = this.state
+    const horario = new Date().toTimeString().slice(0, 5);
+    console.log(Brinde)
+    console.log(horario)
+    this.socket.emit('insert_order',{'comanda':fcomanda,'pedidosSelecionados':[Brinde],
+      'quantidadeSelecionada':[1],'preco':true,'username':username,'horario':horario,'extraSelecionados':['']})
+    this.setState({Brinde:'',ShowBrinde:false})
+  }
+
   atualizarOrdem = (sinal,ordem) =>{
     if (sinal==='-' && this.state.ordem>0){
       if (ordem-1===1){
@@ -213,6 +238,17 @@ class ComandaScreen extends React.Component {
     this.socket.emit('desfazer_pagamento',{comanda:this.state.fcomanda,preco:this.state.preco})
   }
 
+  dataComnpleto = () =>{
+    this.setState({data:this.state.dataGeral})
+  }
+
+  filtrarPorNome(nome){
+    this.setState({
+      data: this.state.dataGeral.filter(item=>item.nome===nome)
+    })
+  }
+
+
   render() {
 
     return (
@@ -234,6 +270,22 @@ class ComandaScreen extends React.Component {
             </View>
           )}
         </View>
+          
+        {this.state.nomes.length && (
+          <View style={{flexDirection: 'row'}}>
+            <Button title="Geral" onPress={this.dataComnpleto}/>
+            {this.state.nomes.map((item,index) => (
+              <View key={index} style={{flexDirection:'row'}}>
+              <Text>  </Text>
+              <Button title={item.nome} onPress={() => this.filtrarPorNome(item.nome)}/>
+              </View>
+            ))
+            }
+            <Text>  </Text>
+            <Button title='Sem Nome' color={'orange'} onPress={() => this.filtrarPorNome('-1')}/>
+          </View>
+        )}
+
   
         {/* Tabela de pedidos */}
         <View style={styles.tableHeader}>
@@ -279,12 +331,6 @@ class ComandaScreen extends React.Component {
             </View>
   
             <View style={styles.buttonRow}>
-              <Button title='Tudo Pago' onPress={this.apagarComanda} />
-              {!this.state.showDez ? (
-                <Button title='10%' onPress={() => this.setState(prevState => ({ preco: prevState.preco * 1.1, showDez: prevState.preco }))} />
-              ) : (
-                <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
-              )}
               <View>
             {!this.state.ShowBrinde ? (
               <View style={styles.buttonRow}>
@@ -312,7 +358,7 @@ class ComandaScreen extends React.Component {
                       <Text style={styles.brindeText}>{item}</Text>
                     </TouchableOpacity>
                   ))}
-                  <Button title='OK' onPress={() => this.setState({ ShowBrinde: false })} />
+                  <Button title='OK' onPress={this.confirmarBrinde} />
                 </View>
               )}
             </View>

@@ -13,6 +13,7 @@ import ChoseUser from './screens/ChoseUser';
 import { UserContext, UserProvider } from './UserContext'; // Import UserProvider and context
 import PedidosScreen from './screens/PedidosScreen';
 import Analytics from './screens/AnalyticsScreen';
+import Cadastro from './screens/CadastrarScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
@@ -20,16 +21,15 @@ const Stack = createStackNavigator();
 // Stack Navigator para as telas relacionadas à Home (incluindo a ComandaScreen)
 function HomeStack() {
   return (
-    <Stack.Navigator initialRouteName="home">
+    <Stack.Navigator initialRouteName="Home">
       <Stack.Screen 
-        name="home" 
+        name="Home" 
         component={HomeScreen} 
         options={{ headerShown: false }} // Oculta o cabeçalho
       />
       <Stack.Screen 
-        name="ComandaScreen" 
-        component={ComandaScreen} 
-       // Oculta o cabeçalho
+        name="Comanda" 
+        component={ComandaScreen} // Oculta o cabeçalho
       />
     </Stack.Navigator>
   );
@@ -44,14 +44,15 @@ function AuthNavigator() {
     <NavigationContainer>
       {user.username ? (user.cargo==='ADM'?(
         // Se o usuário está logado, mostrar as telas protegidas
-        <Drawer.Navigator initialRouteName="Home">
-          <Drawer.Screen name="Home" component={HomeStack} />
+        <Drawer.Navigator initialRouteName="Inicio">
+          <Drawer.Screen name="Inicio" component={HomeStack} />
           <Drawer.Screen name="Barman" component={BarmanScreen} />
           <Drawer.Screen name="Cozinha" component={Cozinha} />
           <Drawer.Screen name="Pedidos" component={PedidosScreen} />
           <Drawer.Screen name="Estoque" component={EstoqueScreen} />
           <Drawer.Screen name="Analytics" component={Analytics} />
           <Drawer.Screen name="Users" component={ChoseUser} />
+          <Drawer.Screen name="Cadastrar" component={Cadastro} />
         </Drawer.Navigator>
       ):(
         <Drawer.Navigator initialRouteName="Home">

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
 import io from 'socket.io-client';
@@ -47,6 +46,7 @@ export default class Cozinha extends React.Component {
     return (
       <View style={styles.container}>
         <View style={styles.tableHeader}>
+          <Text style={styles.headerText}>Comanda</Text>
           <Text style={styles.headerText}>Pedido</Text>
           <Text style={styles.headerText}>Horario Envio</Text>
           <Text style={styles.headerText}>Estado</Text>
@@ -60,7 +60,8 @@ export default class Cozinha extends React.Component {
           data={dataToShow}
           renderItem={({ item,index }) => (
             <View style={styles.tableRow}>
-              <Text style={styles.itemText}>{item.pedido} ({item.comanda})</Text>
+              <Text style={styles.itemText}>{item.comanda}</Text>
+              <Text style={styles.itemText}>{item.pedido}</Text>
               <Text style={styles.itemText}>{item.inicio}</Text>
               <Text style={styles.itemText}>{item.estado}</Text>
               {item.estado==="Em Preparo" ? (
