@@ -179,7 +179,7 @@ def cadastro():
     print(username)
     senha = data.get('senha')
     print(senha)
-    db.execute('INSERT INTO usuarios (username,senha,cargo) VALUES (?,?,?)',
+    db.execute('INSERT INTO usuarios (username,senha,cargo,liberado) VALUES (?,?,?,?)',
                username, senha, 'colaborador', '1')
     print('sucesso')
     return {'sucesso': 'sucesso'}
@@ -228,6 +228,7 @@ def handle_disconnect():
 @socketio.on('insert_order')
 def handle_insert_order(data):
     try:
+
         comanda = data.get('comanda')
         pedidos = data.get('pedidosSelecionados')
         quantidades = data.get('quantidadeSelecionada')
@@ -242,8 +243,19 @@ def handle_insert_order(data):
         print(quantidades)
         print(horario)
         print(nomes)
+        if not nomes:
+            nomes = []
+            for i in range(len(pedidos)):
+                nomes.append('-1')
         for i in range(len(pedidos)):
             pedido = pedidos[i]
+            if pedido.startswith('p.'):
+                # Remover os dois primeiros caracteres 'p.'
+                pedido = pedido[2:]
+                resultado = db.execute(
+                    'SELECT pedido FROM cardapio WHERE id = ? AND categoria_id = ?', (pedido, 3))
+                pedido = resultado[0]['pedido']
+
             quantidade = quantidades[i]
             preco_unitario = db.execute(
                 'SELECT preco,categoria_id FROM cardapio WHERE item = ?', pedido)
@@ -290,21 +302,14 @@ def handle_insert_order(data):
 
 @socketio.on('atualizar_pedidos')
 def handle_atualizar_pedidos(data):
-    pedidos_alterados = data.get('pedidosAlterados')
-    for row in pedidos_alterados:
-        comanda = row['comanda']
-        pedido = row['pedido']
-        quantidade = row['quantidade']
-        extra = row['extra']
-        id = row['id']
-        if float(quantidade) < 1:
-            db.execute('DELETE FROM pedidos WHERE id = ?', id)
-        else:
-            db.execute(
-                'UPDATE pedidos SET comanda = ?,pedido = ?,quantidade = ?,extra=? WHERE id = ?', comanda, pedido, float(quantidade), extra, id)
-        dados_pedidos = db.execute('SELECT * FROM pedidos')
-        print(dados_pedidos)
-        emit('initial_data', {'dados_pedido': dados_pedidos}, broadcast=True)
+    p = data.get('pedidoAlterado')
+    preco = db.execute('SELECT preco,quantidade FROM pedidos WHERE id = ?',p['id'])
+    if preco[0]['preco']==p['preco']:
+        p['preco']= float(preco[0]['preco'])/float(preco[0]['quantidade'])*float(p['quantidade'])
+
+    db.execute("UPDATE pedidos SET comanda = ?, pedido = ?, quantidade = ?, extra = ?,preco = ? WHERE id = ?",p['comanda'],p['pedido'],p['quantidade'],p['extra'],p['preco'],p['id'])
+    dados_pedidos = db.execute('SELECT * FROM pedidos')
+    emit('initial_data', {'dados_pedido': dados_pedidos}, broadcast=True)
 
 
 @socketio.on('desfazer_pagamento')
@@ -396,6 +401,7 @@ def handle_delete_comanda(data):
         # Atualizar a ordem da comanda
         db.execute('UPDATE pedidos SET ordem = ordem +? WHERE comanda = ?',
                    1, comanda)
+        print
 
         # Emitir o evento de comanda apagada
         emit('comanda_deleted', {'fcomanda': comanda}, broadcast=True)
@@ -407,7 +413,9 @@ def handle_delete_comanda(data):
 
 @socketio.on('pagar_parcial')
 def pagar_parcial(data):
-
+    comanda = data.get('fcomanda')
+    print(f'pagar parcial comanda : ',end='')
+    print(comanda)
     valor_pago = data.get('valor_pago')
 
     dia = datetime.now().date()
@@ -421,7 +429,7 @@ def pagar_parcial(data):
         db.execute(
             'INSERT INTO pagamentos (dia, faturamento) VALUES (?,?)', dia, float(valor_pago))
 
-    comanda = data.get('fcomanda')
+    
     preco_pago = db.execute(
         'SELECT valor_pago FROM valores_pagos WHERE comanda = ? AND ORDEM = ?', comanda, 0)
 
@@ -431,13 +439,14 @@ def pagar_parcial(data):
 
         valor_total = float(valor_pago)
     else:
-        valor_total = float(valor_pago) + \
-            float(preco_pago[0]['valor_pago'])
+        valor_total = float(valor_pago) + float(preco_pago[0]['valor_pago'])
         db.execute(
             'UPDATE valores_pagos SET valor_pago = ? WHERE comanda = ? AND ordem = ?', valor_total, comanda, 0)
+    
     total_comanda = db.execute('''
             SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
         ''', comanda, 0)
+    print(total_comanda)
     if valor_total >= float(total_comanda[0]['total']):
         handle_delete_comanda(comanda)
     handle_get_cardapio(comanda)

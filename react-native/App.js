@@ -21,9 +21,9 @@ const Stack = createStackNavigator();
 // Stack Navigator para as telas relacionadas à Home (incluindo a ComandaScreen)
 function HomeStack() {
   return (
-    <Stack.Navigator initialRouteName="Home">
+    <Stack.Navigator initialRouteName="home">
       <Stack.Screen 
-        name="Home" 
+        name="home" 
         component={HomeScreen} 
         options={{ headerShown: false }} // Oculta o cabeçalho
       />
