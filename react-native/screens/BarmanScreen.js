@@ -8,7 +8,7 @@ export default class BarmanScreen extends React.Component {
     this.state = {
       data: [],
       data_filtrado: [],
-      showFiltrado: false,
+      showFiltrado: true,
       showExtra: [],
       ingredientes: [], // Inicializa como um array vazio
     };

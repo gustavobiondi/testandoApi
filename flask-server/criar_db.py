@@ -7,6 +7,6 @@ db = SQL('sqlite:///dados.db')
 
 
 
-dados = db.execute('SELECT * FROM valores_pagos')
+dados = db.execute('SELECT * FROM pedidos')
 
 print(dados)

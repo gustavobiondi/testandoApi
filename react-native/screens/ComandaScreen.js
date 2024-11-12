@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView} from 'react-native';
+import { FlatList,ScrollView, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView} from 'react-native';
 
 import io from 'socket.io-client';
 import { getCurrentTime } from './HomeScreen';
@@ -34,6 +34,8 @@ class ComandaScreen extends React.Component {
 
   componentDidMount() {
     console.log(this.state.nomes)
+    console.log(this.state.fcomanda)
+   
 
     this.socket = io('http://192.168.15.16:5000');
 
@@ -59,7 +61,7 @@ class ComandaScreen extends React.Component {
 
     this.socket.on('comanda_deleted', ({ fcomanda }) => {
       if (fcomanda === this.state.fcomanda) {
-        this.setState({ data: [], preco: 0,preco_total:0,preco_pago:0 });
+        this.setState({ data: [],dataGeral:[], nomes:[],preco: 0,preco_total:0,preco_pago:0 });
       }
     });
 
@@ -78,11 +80,11 @@ class ComandaScreen extends React.Component {
 
 
   apagarComanda = () => {
-    if (this.state.data){
+    
     const { fcomanda,preco } = this.state;
-    this.setState({showDez:false})
     this.socket.emit('delete_comanda', { fcomanda: fcomanda, valor_pago:preco });
-    }
+    this.setState({showDez:false,nomes:[]})
+    
   }
 
   changeValor = (valor_pago) => {
@@ -204,7 +206,7 @@ class ComandaScreen extends React.Component {
       })
         .then(resp => resp.json()) // Garante que resp.json() seja retornado
         .then(data => {
-          this.setState({ data:data.data,preco:data.preco });
+          this.setState({ data:data.data,dataGeral:data.data,preco:data.preco });
         console.log(data)  
         })
         .catch(error => console.error('Erro ao buscar pedidos:', error));
@@ -228,7 +230,7 @@ class ComandaScreen extends React.Component {
       })
         .then(resp => resp.json()) // Garante que resp.json() seja retornado
         .then(data => {
-          this.setState({ data:data.data,preco:data.preco });})
+          this.setState({ data:data.data,dataGeral:data.data,preco:data.preco });})
         .catch(error => console.error('Erro ao buscar pedidos:', error));
     }
   }
@@ -252,9 +254,9 @@ class ComandaScreen extends React.Component {
   render() {
 
     return (
-      <View style={styles.container}>
+      <ScrollView style={styles.container}>
         {/* Header da comanda e botões de ordem */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between',alignItems:'center' }}>
           <Text>Comanda {this.state.fcomanda}</Text>
             <Button title='<' onPress={() => this.atualizarOrdem('+', this.state.ordem)} />
             <Text>{this.state.ordem}</Text>
@@ -271,20 +273,20 @@ class ComandaScreen extends React.Component {
           )}
         </View>
           
-        {this.state.nomes.length && (
-          <View style={{flexDirection: 'row'}}>
-            <Button title="Geral" onPress={this.dataComnpleto}/>
-            {this.state.nomes.map((item,index) => (
-              <View key={index} style={{flexDirection:'row'}}>
+        {this.state.nomes.length > 0 && this.state.ordem === 0 && (
+        <View style={{flexDirection: 'row'}}>
+          <Button title="Geral" onPress={this.dataComnpleto} />
+          {this.state.nomes.map((item, index) => (
+            <View key={index} style={{flexDirection: 'row'}}>
               <Text>  </Text>
-              <Button title={item.nome} onPress={() => this.filtrarPorNome(item.nome)}/>
-              </View>
-            ))
-            }
-            <Text>  </Text>
-            <Button title='Sem Nome' color={'orange'} onPress={() => this.filtrarPorNome('-1')}/>
-          </View>
+              <Button title={item.nome} onPress={() => this.filtrarPorNome(item.nome)} />
+            </View>
+          ))}
+          <Text>  </Text>
+          <Button title='Sem Nome' color={'orange'} onPress={() => this.filtrarPorNome('-1')} />
+        </View>
         )}
+
 
   
         {/* Tabela de pedidos */}
@@ -293,24 +295,22 @@ class ComandaScreen extends React.Component {
           <Text style={styles.headerText}>Quant</Text>
           <Text style={styles.headerText}>Valor</Text>
         </View>
-  
-        <FlatList
-          data={this.state.data}
-          renderItem={({ item, index }) => (
-            <View style={styles.tableRow}>
-              <Text style={styles.itemText}>{item.pedido}</Text>
-              <Text style={styles.itemText}>{item.quantidade}</Text>
-              <Text style={styles.itemText}>{item.preco}</Text>
-              {this.state.showBotoes && (
-                <View style={styles.buttonRow}>
-                  <Button title='-' color={'red'} onPress={() => this.apagarPedidos(index)} />
-                  <Button title='+' onPress={() => this.adicionarPedidos(index)} />
-                </View>
-              )}
+        
+        {this.state.data.map((item,index)=>(
+          <View key={index} style={styles.tableRow}>
+          <Text style={styles.itemText}>{item.pedido}</Text>
+          <Text style={styles.itemText}>{item.quantidade}</Text>
+          <Text style={styles.itemText}>{item.preco}</Text>
+          {this.state.showBotoes && (
+            <View style={styles.buttonRow}>
+              <Button title='-' color={'red'} onPress={() => this.apagarPedidos(index)} />
+              <Button title='+' onPress={() => this.adicionarPedidos(index)} />
             </View>
           )}
-          keyExtractor={(item, index) => index.toString()}
-        />
+          </View>
+        ))}
+
+
   
         {/* Resumo e opções de pagamento */}
         {this.state.ordem === 0 ? (
@@ -333,6 +333,7 @@ class ComandaScreen extends React.Component {
             <View style={styles.buttonRow}>
               <View>
             {!this.state.ShowBrinde ? (
+              <View>
               <View style={styles.buttonRow}>
               <Button title='Tudo Pago' onPress={this.apagarComanda} />
 
@@ -341,8 +342,8 @@ class ComandaScreen extends React.Component {
               ) : (
                 <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
               )}
-
-                <Button title='Adicionar Brinde' onPress={() => this.setState({ ShowBrinde: true })} />
+                </View>
+                <Button title='Adicionar Brinde' color={'green'} onPress={() => this.setState({ ShowBrinde: true })} />
                 </View>
               ):(
 
@@ -363,7 +364,8 @@ class ComandaScreen extends React.Component {
               )}
             </View>
             </View>
-              <KeyboardAvoidingView style={{flexDirection:'row'}} behavior='padding' >
+            <KeyboardAvoidingView behavior='padding' >
+            <View style={{flexDirection:'row'}}>
             <TextInput
               placeholder="Quanto?"
               onChangeText={this.changeValor}
@@ -372,12 +374,13 @@ class ComandaScreen extends React.Component {
               style={styles.input}
             />
             <Button title='Pagar Parcial' onPress={this.pagarParcial} />
+            </View>
             </KeyboardAvoidingView>
           </View>
         ) : (
           this.state.ordem === 1 && this.state.data && <Button title='Desfazer Pagamento' onPress={this.desfazerPagamento} />
         )}
-      </View>
+      </ScrollView>
     );
   }
 }

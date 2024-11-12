@@ -136,7 +136,7 @@ export default class HomeScreen extends React.Component {
         horario: currentTime,
         username:username,
       });
-      this.setState({ comand: '', pedido: '',pedidosSelecionados: [], quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false,nome:'',nomeSelecionado:[],showComanda:false});
+      this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false,nome:'',nomeSelecionado:[],showComanda:false});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
       fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
@@ -164,6 +164,7 @@ export default class HomeScreen extends React.Component {
           showExtra: false,
           comanda_filtrada:[],
           comanda_filtrada_abrir:[],
+          showComandaPedido:false,
         })
         alert('quantidade estoque insuficienet restam apenas {data.quantidade}')
         ;
@@ -182,7 +183,7 @@ export default class HomeScreen extends React.Component {
           showExtra:false,
           username:username,
         });
-        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:''});
+        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false});
       }
     })
     .catch(error => console.error('Erro ao adicionar pedido:', error));
@@ -198,8 +199,9 @@ export default class HomeScreen extends React.Component {
       this.socket.emit('get_cardapio', { fcomanda });
       this.socket.once('preco', (data) => {
         console.log(data)
-        this.setState({fcomanda:'',comand:'',showPedido:false,showQuantidade:false,pedido:'',showExtra:'',extra:''})
+
         this.props.navigation.navigate('Comanda', { data: data.dados, fcomanda: this.state.fcomanda, preco: data.preco_a_pagar,preco_total:data.preco_total,preco_pago:data.preco_pago, username:username,nomes:data.nomes});
+        this.setState({fcomanda:'',comand:'',showPedido:false,showQuantidade:false,pedido:'',showExtra:'',extra:''})
       });
     } else {
       console.warn('Por favor, insira a comanda.');
@@ -213,7 +215,7 @@ export default class HomeScreen extends React.Component {
       this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda });
       this.setState((prevState) => ({ preco: prevState.preco - valorNum, valor_pago: '' }));
     } else {
-      console.warn('Insira um valor vÃ¡lido para pagamento parcial.');
+      console.warn('Insira um valor válido para pagamento parcial.');
     }
   };
 

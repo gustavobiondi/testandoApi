@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Text, StyleSheet, Button, TextInput, TouchableOpacity } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button, TextInput, Modal, TouchableOpacity } from 'react-native';
 import io from 'socket.io-client';
 
 export default class PedidosScreen extends React.Component {
@@ -9,13 +9,15 @@ export default class PedidosScreen extends React.Component {
       data: [],
       showEditar: false,
       pedidosAlterados: [],
-      dados_antigos:[],
+      dados_antigos: [],
+      showModal: false,
+      pedidoModal: {},
+      editable: false,
     };
   }
 
   componentDidMount() {
     this.socket = io('http://192.168.15.16:5000');
-
     this.socket.on('initial_data', (dados) => {
       console.log(dados);
       this.setState({ data: dados.dados_pedido });
@@ -26,125 +28,114 @@ export default class PedidosScreen extends React.Component {
     this.socket.disconnect();
   }
 
-  alterarPedido = (campo, valor, index) => {
-    const atualizar = [...this.state.data];
-    const pedido_na_lista = this.state.pedidosAlterados.some(pedido => pedido.id === atualizar[index].id);
+  alterarPedido = (campo, valor) => {
+    this.setState(prevState => ({
+      pedidoModal: { ...prevState.pedidoModal, [campo]: valor }
+    }));
+  };
 
-    const newData = atualizar.map((item, ind) => {
-      if (ind === index) {
-        return { ...item, [campo]: valor };
-      }
-      return item;
-    });
-
-    if (!pedido_na_lista) {
-      this.setState(prevState => ({
-        pedidosAlterados: [...prevState.pedidosAlterados, { ...newData[index] }]
-      }));
-    } else {
-      this.setState(prevState => ({
-        pedidosAlterados: prevState.pedidosAlterados.map(pedido =>
-          pedido.id === newData[index].id ? { ...pedido, [campo]: valor } : pedido
-        )
-      }));
-    }
-
-    this.setState({ data: newData });
+  abrirModal = (item) => {
+    this.setState({ pedidoModal: item, showModal: true,});
   };
 
   handleConfirmar = () => {
-    const { pedidosAlterados } = this.state;
-    this.socket.emit('atualizar_pedidos', { pedidosAlterados });
-    this.setState({ showEditar: false });
+    
+    this.socket.emit('atualizar_pedidos', {'pedidoAlterado':this.state.pedidoModal});
+    this.setState({editable:false, pedidoModal:{},showModal:false})
+    
   };
 
-  handleCancelar =()=>{
-    this.setState({data:this.state.dados_antigos})
-    this.setState({showEditar:false})
-  }
-
-  handleDelete = (index) => {
-    this.alterarPedido('quantidade', '0', index);
+  handleCancelar = () => {
+    this.setState({ data: this.state.dados_antigos, showEditar: false });
   };
 
   render() {
-    const {data} = this.state
+    const { data } = this.state;
     return (
       <View style={styles.container}>
-         {!this.state.showEditar ? (
-            <Button title="Editar" onPress={() => this.setState({ showEditar: true, dados_antigos:data })} />
-          ) : (
-            <View style={{flexDirection:"row",justifyContent:'space-between',alignItems:'center'}}>
-            <Button title="Cancelar" color={'red'} onPress={this.handleCancelar}/>
+        {!this.state.showEditar ? (
+          <Button title="Editar" onPress={() => this.setState({ showEditar: true, dados_antigos: data })} />
+        ) : (
+          <View style={styles.editButtons}>
+            <Button title="Cancelar" color="red" onPress={this.handleCancelar} />
             <Button title="Confirmar" onPress={this.handleConfirmar} />
           </View>
-          )}
-        <View style={styles.tableHeader}>
-          <Text style={styles.headerText}>Cmd</Text>
-          <Text style={styles.headerText}>Quant</Text>
-          <Text style={styles.headerText}>Pedido</Text>
-          <Text style={styles.headerText}>Extra</Text>
-          <Text style={styles.headerText}>User</Text>
+        )}
+        
       
-        </View>
+        
         <FlatList
           data={this.state.data}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <View style={styles.tableRow}>
-              <View style={styles.itemContainer}>
-                <TextInput
-                  style={styles.itemText}
-                  value={item.comanda}
-                  editable={this.state.showEditar}
-                  onChangeText={(text) => this.alterarPedido('comanda', text, index)}
-                />
-              </View>
-              <View style={styles.itemContainer}>
-              <TextInput
-                  style={styles.itemText}
-                  value={item.quantidade.toString()}
-                  editable={this.state.showEditar}
-                  onChangeText={(text) => this.alterarPedido('quantidade', text, index)}
-                />
-              </View>
-              
-              <View style={styles.itemContainer}>
-              <TextInput
-                  style={styles.itemText}
-                  value={item.pedido}
-                  editable={this.state.showEditar}
-                  onChangeText={(text) => this.alterarPedido('pedido', text, index)}
-                />
-                
-              </View>
-              <View style={styles.itemContainer}>
-              <TextInput
-                  style={styles.itemText}
-                  value={item.extra}
-                  editable={this.state.showEditar}
-                  onChangeText={(text) => this.alterarPedido('extra', text, index)}
-                />
-              </View>
-              <View style={styles.itemContainer}>
-                <Text>{item.inicio}</Text>
-              </View>
-              <View style={styles.itemContainer}>
-                <Text>{item.username}</Text>
-              </View>
-              {this.state.showEditar && (
-                <View style={styles.itemContainer}>
-                  <TouchableOpacity
-                    onPress={() => this.handleDelete(index)}
-                    style={styles.deleteButton}
-                  >
-                    <Text style={styles.deleteButtonText}>-</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              <TouchableOpacity
+                onPress={() => this.abrirModal(item)}
+                style={styles.itemContainer}
+              >
+                <Text style={styles.itemText}>
+                  {item.quantidade} {item.pedido} ({item.comanda}) - {item.inicio}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         />
+        
+        {/* Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={this.state.showModal}
+          onRequestClose={() => this.setState({ showModal: false })}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {/* Botões de Edição */}
+              {this.state.editable ? (
+              <TouchableOpacity
+              style={[styles.EitButton,{backgroundColor:'green'}]}
+              onPress={this.handleConfirmar}
+              >
+              <Text style={styles.buttonText}>Confirmar</Text>
+              </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                style={[styles.EitButton,{backgroundColor:'blue'}]}
+                onPress={() => this.setState({ editable:true })}
+              >
+                <Text style={styles.buttonText}>Editar</Text>
+              </TouchableOpacity>
+             )}
+
+              {/* Campos de Edição */}
+              {["comanda", "pedido", "quantidade", "extra", "preco"].map((campo) => (
+              
+                <View key={campo} style={{flexDirection:'row',alignItems:'center'}}>
+                <Text>{campo}: </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={String(this.state.pedidoModal[campo] || '')}
+                  editable={this.state.editable}
+                  onChangeText={(text) => this.alterarPedido(campo, text)}
+                  placeholder={`Digite ${campo}`}
+                />
+                </View>
+              ))}
+
+              {/* Botão para Fechar o Modal */}
+              
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => this.setState({ showModal: false, editable:false})}
+              >
+                <Text style={styles.buttonText}>Fechar</Text>
+              </TouchableOpacity>
+              
+            
+
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -154,6 +145,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+  },
+  editButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -165,33 +162,65 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center', // Centraliza o texto no cabeçalho
+    textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
   itemContainer: {
-    flex: 1,
-    justifyContent: 'center', // Centraliza verticalmente o conteúdo
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
   },
   itemText: {
+    textAlign: 'center',
+  },
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
+  },
+  modalInput: {
+    width: '70%',
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ccc',
-    padding: 5,
+    padding: 8,
+    marginVertical: 5,
+    borderRadius: 5,
   },
-  deleteButton: {
-    backgroundColor: 'transparent',
-    padding: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
+  closeButton: {
+    backgroundColor: '#FF6347',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 15,
   },
-  deleteButtonText: {
-    fontSize: 18,
-    color: 'red', // Cor do texto do botão de delete
+  EitButton: {
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 15,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
+
