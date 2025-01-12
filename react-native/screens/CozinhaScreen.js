@@ -61,7 +61,7 @@ export default class Cozinha extends React.Component {
           renderItem={({ item,index }) => (
             <View style={styles.tableRow}>
               <Text style={styles.itemText}>{item.comanda}</Text>
-              <Text style={styles.itemText}>{item.pedido}</Text>
+              <Text style={styles.itemText}>{item.pedido} {item.extra}</Text>
               <Text style={styles.itemText}>{item.inicio}</Text>
               <Text style={styles.itemText}>{item.estado}</Text>
               {item.estado==="Em Preparo" ? (

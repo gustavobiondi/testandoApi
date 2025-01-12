@@ -20,7 +20,9 @@ export default class PedidosScreen extends React.Component {
     this.socket = io('http://192.168.15.16:5000');
     this.socket.on('initial_data', (dados) => {
       console.log(dados);
+      if (dados.dados_pedido){
       this.setState({ data: dados.dados_pedido });
+      }
     });
   }
 
@@ -51,35 +53,27 @@ export default class PedidosScreen extends React.Component {
 
   render() {
     const { data } = this.state;
-    return (
-      <View style={styles.container}>
-        {!this.state.showEditar ? (
-          <Button title="Editar" onPress={() => this.setState({ showEditar: true, dados_antigos: data })} />
-        ) : (
-          <View style={styles.editButtons}>
-            <Button title="Cancelar" color="red" onPress={this.handleCancelar} />
-            <Button title="Confirmar" onPress={this.handleConfirmar} />
+    return (       
+      <View style={{ flex: 1 }}>
+      <FlatList
+        data={data}
+        keyExtractor={(item, index) => index.toString()}
+        inverted
+        ListFooterComponent={<View style={{ height: this.state.data.length > 0 ? 0 : 200 }} />}
+        renderItem={({ item }) => (
+          <View style={styles.tableRow}>
+            <TouchableOpacity
+              onPress={() => this.abrirModal(item)}
+              style={styles.itemContainer}
+            >
+              <Text style={styles.itemText}>
+                {item.quantidade} {item.pedido} ({item.comanda}) - {item.inicio}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
-        
-      
-        
-        <FlatList
-          data={this.state.data}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.tableRow}>
-              <TouchableOpacity
-                onPress={() => this.abrirModal(item)}
-                style={styles.itemContainer}
-              >
-                <Text style={styles.itemText}>
-                  {item.quantidade} {item.pedido} ({item.comanda}) - {item.inicio}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        />
+      />
+
         
         {/* Modal */}
         <Modal

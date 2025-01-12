@@ -14,25 +14,53 @@ import { UserContext, UserProvider } from './UserContext'; // Import UserProvide
 import PedidosScreen from './screens/PedidosScreen';
 import Analytics from './screens/AnalyticsScreen';
 import Cadastro from './screens/CadastrarScreen';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import verComandas from './screens/Comandas';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
 
 // Stack Navigator para as telas relacionadas à Home (incluindo a ComandaScreen)
 function HomeStack() {
   return (
-    <Stack.Navigator initialRouteName="home">
-      <Stack.Screen 
-        name="home" 
-        component={HomeScreen} 
-        options={{ headerShown: false }} // Oculta o cabeçalho
+    
+      <Tab.Navigator initialRouteName="home">
+        <Tab.Screen 
+          name="home" 
+          component={HomeScreen} 
+          options={{ 
+            headerShown: false, 
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="home" color={color} size={size} /> // Ícone de casinha
+            )
+          }}
+        />
+      <Tab.Screen 
+        name="comanda" 
+        component={Comanda} 
+        options={{ 
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="list-alt" color={color} size={size} /> // Ícone de lista
+          )
+        }} 
       />
-      <Stack.Screen 
-        name="Comanda" 
-        component={ComandaScreen} // Oculta o cabeçalho
-      />
-    </Stack.Navigator>
+    </Tab.Navigator>
   );
+}
+
+function Comanda() {
+    return (
+      <Stack.Navigator initialRouteName="Comandas" options={{ headerShown: false }}>
+        <Stack.Screen name="Comandas" component={verComandas} />
+        <Stack.Screen name="Comanda" component={ComandaScreen} />
+      </Stack.Navigator>
+    );
+  
+  
 }
 
 

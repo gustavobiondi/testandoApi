@@ -1,84 +1,153 @@
-item,preco,categoria_id
-300g camarao,60,3
-300g fritas,30,3
-300g fritas 300g peixes 300g camarao,130,3
-300g peixe,50,3
-500g camarao,95,3
-500g camarao 500g fritas,130,3
-500g fritas,45,3
-500g fritas 1kg camarao,215,3
-500g fritas 1kg peixe,190,3
-500g fritas 500g camarao 500g peixe,200,3
-500g peixe,80,3
-500g peixe 500g fritas,115,3
-500g peixe 500g camarao,160,3
-1kg camarao,175,3
-1kg peixe,150,3
-absolut,12,2
-agua,5,1
-agua com gás,6,1
-agua de coco 1l,25,1
-agua de coco 500ml,15,1
-batida,22,2
-batida absolut,40,2
-batida cachaca luxo,28,2
-batida smirnoff,28,2
-batida velho barreiro,23,2
-bee's kees tanqueray,35,2
-bee's knees seagers,30,2
-bombeirao,15,2
-bombeirinho,10,2
-brahma duplo malte,8,1
-budweiser,10,1
-cabeleira do zeze,25,2
-cachaca luxo,7,2
-caipibeer luxe,25,2
-caipibeer smirnoff,25,2
-caipibeer velho barreiro,25,2
-caipibeer vinho,25,2
-caipirinha,18,2
-caipirinha gourmet,30,2
-caribenho,27,2
-coca,8,1
-coca zero,8,1
-corona,11,1
-cp,20,2
-cp gourmet,35,2
-cp luxe,25,2
-cp luxe gourmet,40,2
-cp rum,27,2
-cp rum gourmet,40,2
-cp seagers,25,2
-cp tanqueray,35,2
-cp tequila,37,2
-cp whisky,40,2
-cv,25,2
-cv absolut,35,2
-cv absolut gourmet,55,2
-daiquiri,20,2
-dingle bell,25,2
-dingle bell,30,2
-espanhola,25,2
-espanhola,30,2
-fanta,8,1
-fitzgerald seagers,35,2
-fitzgerald tanqueray,45,2
-fozen,30,2
-g&tea seagers,35,2
-g&tea tanqueray,45,2
-gin fizz seagers,30,2
-gin fizz tanqueray,40,2
-gin mojito seagers,30,2
-gin mojito tanqueray,40,2
-gin screwdriver seagers,30,2
-gin screwdriver tanqueray,40,2
-gin tonica seagers,35,2
-gin tonica tanqueray,45,2
-guarana,8,1
-guarana zero,8,1
-guaraviton,7,1
-h2o limoneto,8,1
-h2o,8,1
-hanky panky seagers,30,2
-hanky panky tanqueray,40,2
-heineken,10,1
+id,item,preco,categoria_id,opcoes
+1,fritas,33,3,Tamanho(300g-500g+15-1kg+55)Adicionais(cheddar+bacon+18-cebola empanada+15)
+2,calabresa acebolada,43,3,Tamanho(300g-500g+20-1kg+75)Adicionais(cheddar+bacon+18-cebola empanada+15)
+3,frango,48,3,Tamanho(300g-500g+25-1kg+90)Adicionais(cheddar+bacon+18-cebola empanada+15)
+4,isca de peixe,53,3,Tamanho(300g-500g+30-1kg+105)Adicionais(cheddar+bacon+18-cebola empanada+15)
+5,porquinho,53,3,Tamanho(300g-500g+30-1kg+105)Adicionais(cheddar+bacon+18-cebola empanada+15)
+6,lula,55,3,Tamanho(300g-500g+38-1kg+120)Adicionais(cheddar+bacon+18-cebola empanada+15)
+7,isca de contra acebolado,58,3,Tamanho(300g-500g+37-1kg+120)Adicionais(cheddar+bacon+18-cebola empanada+15)
+8,camarao,98,3,Tamanho(300g-500g+35-1kg+125)Adicionais(cheddar+bacon+18-cebola empanada+15)
+9,fritas 300g/calabresa 300g/contra 300g,123,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+10,fritas 300g/peixe 300g/frango 300g,123,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+11,fritas 300g/frango 300g/lula 300g,123,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+12,fritas 300g/peixe 300g/lula 300g,128,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+13,fritas 300g/camarao 300g/frango 300g,133,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+14,fritas 300g/camarao 300g/lula 300g,138,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+15,fritas 300g/camarao 300g/peixe 300g,138,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+16,camarao 300g/frango 300g/peixe 300g,148,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+17,camarao 300g/frango 300g/lula 300g,153,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+18,camarao 300g/lula 300g/peixe 300g,158,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+19,fritas 500g/calabresa 500g,98,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+20,fritas 500g/frango 500g,108,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+21,fritas 500g/peixe 500g,118,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+22,calabresa 500g/frango 500g,123,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+23,fritas 500g/lula 500g,128,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+24,calabresa 500g/peixe 500g,133,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+25,fritas 500g/camarao500g,133,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+26,fritas 500g/carne 500g,133,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+27,calabresa 500g/carne 500g,148,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+28,lula 500g/peixe 500g,163,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+29,camarao 500g/peixe 500g,168,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+30,camarao 500g/lula 500g,178,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+31,fritas 300g/frango 300g/lula 300g/peixe 300g,178,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+32,fritas 300g/camarao 300g/frango 300g/peixe 300g,183,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+33,fritas 300g/camarao 300g/frango 300g/lula 300g,188,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+34,fritas 300g/camarao 300g/lula 300g/peixe 300g,193,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+35,camarao 300g/frango 300g/lula 300g/peixe 300g,208,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+36,fritas 500g/calabresa 500g/contra 500g,193,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+37,fritas 500g/frango 500g/peixe 500g,193,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+38,fritas 500g/frango 500g/lula 500g,203,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+39,fritas 500g/camarao 500g/frango 500g,208,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+40,fritas 500g/lula 500g/peixe 500g,213,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+41,fritas 500g/camarao 500g/peixe 500g,218,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+42,fritas 500g/camarao 500g/lula 500g,228,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+43,camarao 500g/frango 500g/peixe 500g,243,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+44,camarao 500g/frango 500g/lula 500g,253,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+45,camarao 500g/lula 500g/peixe 500g,263,3,Adicionais(cheddar+bacon+18-cebola empanada+15)
+46,acai 300ml,20,2,Complementos(banana-granola-leite em po-leite consensado)Adicionais(morango+3-pacoca+2)
+47,acai 500ml,27,2,Complementos(banana-granola-leite em po-leite consensado)Adicionais(morango+3-pacoca+2)
+48,acai 700ml,35,2,Complementos(banana-granola-leite em po-leite consensado)Adicionais(morango+3-pacoca+2)
+49,agua,5,1,
+50,agua com gas,6,1,
+51,agua de coco,15,1,
+52,americano,30,2,
+53,amstel,8,1,
+54,batida 51,25,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+55,batida absolut,45,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+56,batida cachaca luxo,30,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)Cachaca luxo(matuta-sagatiba-são francisco-seleta)
+57,batida sem alcool,22,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)Base(soda-agua com gas)
+58,batida smirnoff,30,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+59,batida velho barreiro,25,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+60,bombeirinho,10,2,
+61,boulevadier,30,2,
+62,brahma chopp,8,1,
+63,budweiser,10,1,
+64,cabeleira do zeze,30,2,
+65,cabeleira do zeze sem alcool,25,2,
+66,caipibeer cachaca luxo,33,2,Cachaca luxo(matuta-sagatiba-são francisco-seleta)
+67,caipibeer smirnoff,33,2,
+68,caipibeer velho barreiro,29,2,
+69,caipirinha 51,22,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+70,caipirinha absolut,40,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+71,caipirinha cachaca luxo,27,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)Cachaca luxo(matuta-sagatiba-são francisco-seleta)
+72,caipirinha sem alcool,18,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)Base(soda-agua com gas)
+73,caipirinha smirnoff,27,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+74,caipirinha velho barreiro,22,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+75,caipirinha gourmet 51,22,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+76,caipirinha gourmet absolut,40,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+77,caipirinha gourmet cachaca luxo,27,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)Cachaca luxo(matuta-sagatiba-são francisco-seleta)
+78,caipirinha gourmet smirnoff,27,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+79,caipirinha gourmet velho barreiro,22,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+80,coca,8,1,
+81,coca zero,8,1,
+82,corona,11,1,
+83,cuba livre,20,2,
+84,daiquiri,20,2,
+85,dingle bell,30,2,
+86,dingle bell sem alcool,25,2,
+87,dose 51,6,2,
+88,dose absolut,12,2,
+89,dose campari,16,2,
+90,dose rum,8,2,
+91,dose seagers,8,2,
+92,dose smirnoff,8,2,
+93,dose tanqueray,16,2,
+94,dose tequila,16,2,
+95,dose velho barreiro,6,2,
+96,dose whisky,162,
+97,duplo malte,8,1,
+98,espanhola,30,2,
+99,espanhola sem alcool,25,2,Base(soda-agua com gas)
+100,fanta laranja,8,1,
+101,fitzgerald,35,2,Gin(seagers-tanqueray+10)
+102,frozen,30,2,
+103,garibaldi,302,
+104,gin mojito,30,2,Gin(seagers-tanqueray+10)
+105,gin screwdriver,30,2,Gin(seagers-tanqueray+10)
+106,gin tonica,30,2,Gin(seagers-tanqueray+10)
+107,gin tropical,35,2,Gin(seagers-tanqueray+10)
+108,guarana,8,1,
+109,guarana zero,8,1,
+110,guaraviton,6,1,
+111,h2o,8,1,
+112,heineken,10,1,
+113,heineken zero,11,1,
+114,hi-fi,25,2,Vodka(Absolut+5-Smirnoff)
+115,hohohum,35,2,
+116,kamikaze,25,2,Vodka(Absolut+5-Smirnoff)
+117,lagoa azul,35,2,Vodka(Absolut+5-Smirnoff)
+118,limoneto,8,1,
+119,lorenzo,30,2,
+120,lorenzo malvadeza,35,2,
+121,mamae eu posso,25,2,Base(soda-agua com gas)
+122,mamae eu quero,30,2,
+123,manhattan,35,2,
+124,maracugin,35,2,Gin(seagers-tanqueray+10)
+125,margarita,35,2,
+126,mojito,27,2,
+127,negroni,25,2,Gin(seagers-tanqueray+10)
+128,old fashion,30,2,
+129,original,10,1,
+130,penicilin,35,2,
+131,pink gin,25,2,Gin(seagers-tanqueray+10)
+132,pina colada,30,2,
+133,pina descolada,25,2,Base(soda-agua com gas)
+134,pornstar martini,30,2,Vodka(Absolut+5-Smirnoff)
+135,purple dulcet,30,2,
+136,purple dulcet sem alcool,25,2,
+137,raspadinha,15,2,Sabor(fruta-groselha-curacau blue+5)
+138,raspadinha com vodka,30,2,Vodka(Absolut+5-Smirnoff)
+139,red bull,15,1,
+140,sex on the beach,25,2,Vodka(Absolut+5-Smirnoff)
+141,skol,8,1,
+142,soda,8,1,
+143,soda italiana,152,Sabor(groselha-curacau blue+5)
+144,22,southrise,2,Gin(seagers-tanqueray+10)
+145,spaten,10,1,
+146,suco,16,2,Frutas(abacaxi-acai-banana com canela-caju-kiwi-limao-limao siciliano-lima da persia-manga-maracuja-melancia-morango-tangerina)
+147,taipava,8,1,
+148,tequila sunrise,35,2,
+149,tonica,8,1,
+150,tropical,35,1,
+151,white lady,30,2,Gin(seagers-tanqueray+10)
+152,whisky com energetico copao,35,2,

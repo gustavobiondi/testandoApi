@@ -19,7 +19,6 @@ export default class HomeScreen extends React.Component {
       preco_total:0,
       preco_pago:0,
       data: [],
-      fcomanda: '',
       categoria: 'produto',
       pedido_filtrado: [],
       comanda_filtrada:[],
@@ -28,12 +27,14 @@ export default class HomeScreen extends React.Component {
       pedidosSelecionados: [],
       extraSelecionados: [],
       nomeSelecionado:[],
+      options:[],
+      selecionados:[],
+      opcoesSelecionadas:[],
       showPedido: false,
       showComandaPedido: false,
       showComanda:false,
-      showQuantidade: false,
+      showQuantidade: true,
       showPedidoSelecionado: false,
-      showExtra: false,
       quantidade: 1,
       quantidadeRestanteMensagem: null,
       pedidoRestanteMensagem: null,
@@ -54,7 +55,11 @@ export default class HomeScreen extends React.Component {
     this.socket.on('pedidos', (res) => this.setState({ pedido_filtrado: res }));
     this.socket.on('comandas',(res)=> this.setState({ comanda_filtrada: res }))
     this.socket.on('comandas_abrir',(res)=> this.setState({ comanda_filtrada_abrir: res }))
-    this.socket.on('showExtra', (cat) => this.setState({ showExtra: true }));
+    this.socket.on('ativar_opcoes',({options})=>{
+    console.log(options)
+    this.setState({options})
+  })
+    
     this.socket.on('alerta_restantes', (data) => {
       this.setState({ quantidadeRestanteMensagem: data.quantidade, pedidoRestanteMensagem: data.item });
     });
@@ -67,10 +72,9 @@ export default class HomeScreen extends React.Component {
             quantidade: 1,
             showQuantidade: false,
             showPedidoSelecionado: false,
-            showExtra: false,
 
           }); 
-          alert(`Quantidade Insuficiente : apenas ${data.quantidade} no Estoque`)
+          alert('Quantidade Insuficiente : apenas '+data.quantidade+'no Estoque')
         } else {
           const { comand, pedido, quantidade, extra } = this.state;
           const currentTime = this.getCurrentTime();
@@ -91,11 +95,11 @@ export default class HomeScreen extends React.Component {
     this.socket.off('preco');
     this.socket.off('error');
     this.socket.off('pedidos');
-    this.socket.off('showExtra');
+    
     this.socket.off('quantidade_insuficiente');
     this.socket.off('alerta_restantes');
   }
-
+  
   changeComanda = (comand) => {
     this.setState({ comand , showComandaPedido: !!comand})
     if (comand){
@@ -105,38 +109,30 @@ export default class HomeScreen extends React.Component {
 
 
   changePedido = (pedido) => {
-    this.setState({ pedido, showPedido: !!pedido });
+    this.setState({ pedido, showPedido: !!pedido,selecionaveis:[],selecionados:[],options:[]});
     if (pedido) {
       this.socket.emit('pesquisa', pedido);
     }
   };
-
-  changeFcomanda = (fcomanda) => {
-    this.setState({ fcomanda , showComanda: !!fcomanda})
-    if (fcomanda){
-      this.socket.emit('pesquisa_abrir_comanda',{comanda:fcomanda})
-    }
-  };
-  
-  ;
   changeCategoria = (categoria) => this.setState({ categoria });
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
   sendData = () => {
-    const { comand, nome,nomeSelecionado, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, pedido, quantidade, extra, username} = this.state;
+    const { comand, nome,nomeSelecionado, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, pedido, quantidade, extra,opcoesSelecionadas, username,options,selecionados} = this.state;
     const currentTime = this.getCurrentTime();
     console.log(nomeSelecionado)
     if (comand && pedidosSelecionados.length && quantidadeSelecionada.length) {
       this.socket.emit('insert_order', { 
-        comanda: comand, 
+        comanda: comand.toLowerCase(), 
         pedidosSelecionados, 
         quantidadeSelecionada,
         extraSelecionados,
         nomeSelecionado,
         horario: currentTime,
         username:username,
+        opcoesSelecionadas:opcoesSelecionadas,
       });
-      this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false, showExtra: false,nome:'',nomeSelecionado:[],showComanda:false});
+      this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false,nome:'',nomeSelecionado:[],showComanda:false,opcoesSelecionadas:[],selecionados:[]});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
       fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
@@ -161,18 +157,17 @@ export default class HomeScreen extends React.Component {
           quantidade: 1,
           showQuantidade: false,
           showPedidoSelecionado: false,
-          showExtra: false,
           comanda_filtrada:[],
           comanda_filtrada_abrir:[],
           showComandaPedido:false,
         })
-        alert('quantidade estoque insuficienet restam apenas {data.quantidade}')
+        alert('quantidade estoque insuficiente. Restam apenas '+data.quantidade)
         ;
       } else {
-        const { comand, pedido,nomeSelecionado, quantidade, extra,username,nome} = this.state;
+        const { comand, pedido,nomeSelecionado, quantidade, extra,username,nome,selecionados} = this.state;
         const currentTime = this.getCurrentTime();
         this.socket.emit('insert_order', { 
-          comanda: comand, 
+          comanda: comand.toLowerCase(), 
           pedidosSelecionados: [pedido], 
           quantidadeSelecionada: [quantidade],
           extraSelecionados: [extra],
@@ -180,10 +175,10 @@ export default class HomeScreen extends React.Component {
           horario: currentTime,
           comanda_filtrada:[],
           comanda_filtrada_abrir:[],
-          showExtra:false,
           username:username,
+          opcoesSelecionadas:selecionados,
         });
-        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false});
+        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false,selecionados:[],options:[]});
       }
     })
     .catch(error => console.error('Erro ao adicionar pedido:', error));
@@ -193,20 +188,6 @@ export default class HomeScreen extends React.Component {
     }
   };
 
-  getCardapio = () => {
-    const { fcomanda,username } = this.state;
-    if (fcomanda) {
-      this.socket.emit('get_cardapio', { fcomanda });
-      this.socket.once('preco', (data) => {
-        console.log(data)
-
-        this.props.navigation.navigate('Comanda', { data: data.dados, fcomanda: this.state.fcomanda, preco: data.preco_a_pagar,preco_total:data.preco_total,preco_pago:data.preco_pago, username:username,nomes:data.nomes});
-        this.setState({fcomanda:'',comand:'',showPedido:false,showQuantidade:false,pedido:'',showExtra:'',extra:''})
-      });
-    } else {
-      console.warn('Por favor, insira a comanda.');
-    }
-  };
 
   pagarParcial = () => {
     const { valor_pago, fcomanda, preco } = this.state;
@@ -221,7 +202,7 @@ export default class HomeScreen extends React.Component {
 
   selecionarPedido = (pedido) => {
     this.setState({ pedido, pedido_filtrado: [], showQuantidade: true });
-    this.socket.emit('categoria', pedido);
+    this.socket.emit('opcoes',{pedido})
   };
   selecionarComandaPedido =(comand) =>{
     this.setState({ comand, comanda_filtrada: [], showComandaPedido:false})
@@ -257,12 +238,13 @@ export default class HomeScreen extends React.Component {
                 extra: '',
                 nome:'',
                 showPedido: false,
-                showExtra: false,
-                
+                options:[],
+            
+
             });
-            alert(`Quantidade Insuficiente : apenas ${quantidadeEstoqueMensagem} no Estoque`)
+            alert('Quantidade Insuficiente : apenas '+quantidadeEstoqueMensagem+'no Estoque')
         } else {
-            const { pedido, quantidade, extra, nome} = this.state;
+            const { pedido, quantidade, extra, nome, selecionados} = this.state;
             this.setState((prevState) => ({
                 pedidosSelecionados: [...prevState.pedidosSelecionados, pedido],
                 quantidadeSelecionada: [...prevState.quantidadeSelecionada, quantidade],
@@ -275,7 +257,8 @@ export default class HomeScreen extends React.Component {
                 nome:'',
                 showPedidoSelecionado: true,
                 showPedido: false,
-                showExtra: false,
+                options:[],
+                opcoesSelecionadas: selecionados? [...prevState.opcoesSelecionadas, selecionados] : [...prevState.opcoesSelecionadas, []]
             }));
         }
     })
@@ -298,20 +281,19 @@ export default class HomeScreen extends React.Component {
     ;}
   changeExtra = (extra) => this.setState({ extra });
   render() {
-    const {quantidadeRestanteMensagem,pedidoRestanteMensagem} = this.state
     return (
       <View style={styles.mainContainer} >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.container}>
             <View style={[styles.container,styles.row]}>
-              {/* Campo de Comanda (reduzido e Ã  esquerda) */}
+              
               <TextInput
                 placeholder="Comanda"
                 onChangeText={this.changeComanda}
                 value={this.state.comand}
-                style={[styles.input, styles.inputComanda]} // Estilo especÃ­fico para o campo Comanda
+                style={[styles.input, styles.inputComanda]} 
               />
-              {/* Campo de Pedido (Ã  direita) */}
+  
               <TextInput
                 placeholder="Digite o pedido"
                 onChangeText={this.changePedido}
@@ -326,19 +308,79 @@ export default class HomeScreen extends React.Component {
                 <Button title="+" style={[styles.botoes,{marginRight:0}]} onPress={this.aumentar_quantidade} />
                 </View>
               )}
-              </View>
-              <View style={styles.container}>
-              {this.state.showExtra && (
-                <TextInput
-                placeholder="Extra"
-                onChangeText={this.changeExtra}
-                value={this.state.extra}
-                style={[styles.input, styles.inputPedido]}
-                />
-              )}
+              </View>   
               
-        
-            </View>
+              {this.state.options && (
+                this.state.options.map((opcao, index) => {
+                  const categoria = Object.keys(opcao)[0];
+                  const itens = opcao[categoria];
+
+                  return (
+                    <View key={index}>
+                      <Text>{categoria}</Text> {/* Categoria exibida */}
+
+                      {itens.map((item, itemIndex) => {
+                        // Verifica se o item foi selecionado
+                        const itemSelecionado = this.state.selecionados.includes(item);
+
+                        return (
+                          <TouchableOpacity
+                            key={itemIndex}
+                            style={{
+                              flexDirection: 'row', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              paddingVertical: 10, // Espaçamento vertical
+                              paddingHorizontal: 10, // Espaçamento horizontal para toda a linha
+                            }}
+                            onPress={() => {
+                              // Atualiza a lista de selecionados de maneira imutável
+                              this.setState((prevState) => {
+                                let selecionados = [...prevState.selecionados];
+
+                                if (itemSelecionado) {
+                                  // Se o item já está selecionado, removemos da lista
+                                  selecionados = selecionados.filter(
+                                    (selected) => selected !== item
+                                  );
+                                } else {
+                                  // Caso contrário, adicionamos o item à lista de selecionados
+                                  selecionados.push(item);
+                                }
+
+                                // Atualiza o estado com a nova lista de itens selecionados
+                                return { selecionados };
+                              });
+                            }}
+                          >
+                            {/* Texto do item */}
+                            <Text style={{ flex: 1 }}>{item}</Text>
+
+                            {/* Bola de confirmação */}
+                            <View
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 10, // Fazendo o círculo
+                                backgroundColor: itemSelecionado ? 'green' : 'lightgray', // Cor da bola
+                              }}
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  );
+                })
+              )}
+
+
+
+              <TextInput
+              placeholder="Extra (opcional)"
+              onChangeText={this.changeExtra}
+              value={this.state.extra}
+              style={[styles.input, styles.inputPedido]}
+              />
            
           
             {this.state.showComandaPedido && (
@@ -351,21 +393,25 @@ export default class HomeScreen extends React.Component {
             )}
         
             {this.state.showPedido && (
-                this.state.pedido_filtrado.map((item,index)=>(
-                    <TouchableOpacity key={index} style={[styles.container,{alignItems:'center',padding:8}]} onPress={() => this.selecionarPedido(item)}>
-                      <Text style={{fontSize:20}}>{item}</Text>
+                this.state.pedido_filtrado.map((item, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[styles.container, {alignItems: 'center', padding: 8}]} 
+                    onPress={() => this.selecionarPedido(item)}
+                  >
+                    <Text style={{fontSize: 20}}>{item}</Text> {/* Correção: Texto está dentro de <Text> */}
+                  </TouchableOpacity>
+                ))
+              )}
+
             
-                    </TouchableOpacity>
-                  ))
-            )}
-            {this.state.pedido && (
                 <TextInput
                 placeholder="Nome (opicional)"
                 onChangeText={(nome)=>this.setState({nome})}
                 value={this.state.nome}
                 style={[styles.input, styles.inputPedido]}
                 />
-              )}
+              
             <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
             <Button  title="Adicionar" onPress={this.adicionarPedido} />
             {((!this.state.showPedido && this.state.showPedidoSelecionado)||(!this.state.showPedidoSelecionado && this.state.showPedido)) &&(
@@ -373,41 +419,16 @@ export default class HomeScreen extends React.Component {
             )}
             </View>
   
-            {this.state.showPedidoSelecionado && (
-              <View>
-                <FlatList
-                  data={this.state.pedidosSelecionados}
-                  renderItem={({ item, index }) => (
-                    <View style={[styles.container,{flexDirection:'row'}]}>
-                      <Text>{item}</Text>
-                      <View style={[styles.container,{flexDirection:'row'}]}>
-                        <Button title="-" color="red" onPress={() => this.removerPedidoSelecionado(index)} />
-                        <Text>{this.state.quantidadeSelecionada[index]}</Text>
-                        <Button title="+" onPress={() => this.adicionarPedidoSelecionado(index)} />
-                      </View>
-                    </View>
-                  )}
-                />
+            {this.state.showPedidoSelecionado && this.state.pedidosSelecionados.map((item,index)=>(
+              <View key={index} style={[styles.container,{flexDirection:'row'}]}>
+              <Text>{item}</Text>
+              <View style={[styles.container,{flexDirection:'row'}]}>
+                <Button title="-" color="red" onPress={() => this.removerPedidoSelecionado(index)} />
+                <Text>{this.state.quantidadeSelecionada[index]}</Text>
+                <Button title="+" onPress={() => this.adicionarPedidoSelecionado(index)} />
               </View>
-            )}
-  
-            <TextInput
-              placeholder="Qual comanda?"
-              onChangeText={this.changeFcomanda}
-              value={this.state.fcomanda}
-              style={[styles.input, { marginTop: 20 }]}
-            />
-            <View>
-            {this.state.showComanda && (
-                this.state.comanda_filtrada_abrir.map((item,index)=>(
-                    <TouchableOpacity key={index} style={[styles.container,{alignItems:'left',padding:8}]} onPress={() => this.selecionarComanda(item)}>
-                      <Text style={{fontSize:20}}>{item}</Text>
-            
-                    </TouchableOpacity>
-                  ))
-            )}
-            </View>
-            <Button title="Abrir Comanda" onPress={this.getCardapio} />
+              </View>
+            ))}
           </View>
         </ScrollView>
       </View>

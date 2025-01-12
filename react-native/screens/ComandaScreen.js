@@ -10,7 +10,7 @@ class ComandaScreen extends React.Component {
 
   constructor(props) {
     super(props);
-    const { data, fcomanda, preco,preco_total,preco_pago,username,nomes} = this.props.route.params;
+    const { data, fcomanda, preco,preco_total,preco_pago,username,nomes,ordem} = this.props.route.params;
     this.state = {
       username,
       data,
@@ -19,7 +19,7 @@ class ComandaScreen extends React.Component {
       preco,
       preco_total,
       preco_pago,
-      ordem:0,
+      ordem,
       valor_pago: '', // Valor inicial vazio para garantir um controle adequado
       guardarValores:[],
       showBotoes:false,
@@ -296,7 +296,7 @@ class ComandaScreen extends React.Component {
           <Text style={styles.headerText}>Valor</Text>
         </View>
         
-        {this.state.data.map((item,index)=>(
+        {this.state.data.length>0 && this.state.data.map((item,index)=>(
           <View key={index} style={styles.tableRow}>
           <Text style={styles.itemText}>{item.pedido}</Text>
           <Text style={styles.itemText}>{item.quantidade}</Text>
@@ -330,7 +330,7 @@ class ComandaScreen extends React.Component {
               </View>
             </View>
   
-            <View style={styles.buttonRow}>
+            <View >
               <View>
             {!this.state.ShowBrinde ? (
               <View>
@@ -347,19 +347,21 @@ class ComandaScreen extends React.Component {
                 </View>
               ):(
 
-                <View style={styles.buttonRow}>
+                <View >
+                  <View style={styles.buttonRow}>
                   <TextInput
                     placeholder='Brinde'
                     onChangeText={this.changeBrinde}
                     value={this.state.Brinde}
                     style={styles.input}
                   />
+                  <Button title='OK' onPress={this.confirmarBrinde} />
+                  </View>
                   {this.state.brindeFiltrado && this.state.brindeFiltrado.map((item, index) => (
                     <TouchableOpacity key={index} style={styles.brindeContainer} onPress={() => this.selecionar(item)}>
                       <Text style={styles.brindeText}>{item}</Text>
                     </TouchableOpacity>
                   ))}
-                  <Button title='OK' onPress={this.confirmarBrinde} />
                 </View>
               )}
             </View>
