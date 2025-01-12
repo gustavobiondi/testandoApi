@@ -211,8 +211,10 @@ def handle_connect():
     print('Cliente conectado')
     dados_pedido = db.execute('SELECT * FROM pedidos')
     dados_estoque = db.execute('SELECT * FROM estoque')
+    dados_comandaAberta = db.execute('SELECT comanda FROM pedidos WHERE ordem = ? GROUP BY comanda',0)
+    dados_comandaFechada = db.execute('SELECT comanda,ordem FROM pedidos WHERE ordem !=? GROUP BY comanda',0)
     emit('initial_data', {'dados_pedido': dados_pedido,
-         'dados_estoque': dados_estoque}, broadcast=True)
+         'dados_estoque': dados_estoque,'comandasAbertas':dados_comandaAberta,'comandasFechadas':dados_comandaFechada}, broadcast=True)
 
 
 # Manipulador de desconexão
@@ -233,7 +235,24 @@ def handle_insert_order(data):
         pedidos = data.get('pedidosSelecionados')
         quantidades = data.get('quantidadeSelecionada')
         horario = data.get('horario')
-        extra = data.get('extraSelecionados')
+        opcoesSelecionadas = data.get('opcoesSelecionadas')
+        print(f"opcoesSelecionadas = {opcoesSelecionadas}")
+        if opcoesSelecionadas:
+            extraSelecionados = data.get('extraSelecionados')
+            extra=[]
+            for j in range(len(extraSelecionados)):
+                print(extraSelecionados)
+                extras=''
+            
+                for i in opcoesSelecionadas[j]:
+                    extras +=i
+                    extras+= ' '
+                    extras+=extraSelecionados[j]
+                    print(extras)    
+                extra.append(extras)
+         
+        else:
+            extra = data.get('extraSelecionados')
         username = data.get('username')
         preco = data.get('preco')
         nomes = data.get('nomeSelecionado')
@@ -249,12 +268,6 @@ def handle_insert_order(data):
                 nomes.append('-1')
         for i in range(len(pedidos)):
             pedido = pedidos[i]
-            if pedido.startswith('p.'):
-                # Remover os dois primeiros caracteres 'p.'
-                pedido = pedido[2:]
-                resultado = db.execute(
-                    'SELECT pedido FROM cardapio WHERE id = ? AND categoria_id = ?', (pedido, 3))
-                pedido = resultado[0]['pedido']
 
             quantidade = quantidades[i]
             preco_unitario = db.execute(
@@ -263,7 +276,7 @@ def handle_insert_order(data):
             categoria = preco_unitario[0]['categoria_id']
             print(categoria)
             if not extra[i]:
-                extra[i] = "-"
+                extra[i] = " "
             if not nomes[i]:
                 nomes[i] = "-1"
             print("extra", extra)
@@ -458,26 +471,48 @@ def pesquisa(data):
     pedidos = db.execute('SELECT item FROM cardapio')
     pedidos_filtrados = []
     cont = 0
-    for row in pedidos:
-        if cont < 8:
-            pedido = row['item']
-            if pedido.startswith(data_min):
-                cont += 1
-                pedidos_filtrados.append(pedido)
-        else:
-            break
-    emit('pedidos', pedidos_filtrados)
+    if data_min.startswith("."):
+        pedido = db.execute("SELECT item FROM cardapio WHERE id =?",data_min[1:])
+        if pedido:
+            pedidos_filtrados.append(pedido[0]['item'])
 
+        emit('pedidos', pedidos_filtrados)
+    else:
+        for row in pedidos:
+            if cont < 8:
+                pedido = row['item']
+                if pedido.startswith(data_min):
+                    cont += 1
+                    pedidos_filtrados.append(pedido)
+            else:
+                break
+        emit('pedidos', pedidos_filtrados)
 
-@socketio.on('categoria')
-def categoria(data):
-    pedido = data
-    print(pedido)
-    categoria = db.execute(
-        'SELECT categoria_id FROM cardapio WHERE item = ?', pedido)
-    print(categoria[0]['categoria_id'])
-    if categoria[0]['categoria_id'] == 2:
-        emit('showExtra', categoria, broadcast=True)
+@socketio.on('opcoes')
+def opcoes(data):
+    item=data.get('pedido')
+    opcoes = db.execute('SELECT opcoes FROM cardapio WHERE item = ?',item)
+    if opcoes:
+        palavra = ''
+        selecionaveis = []
+        dados = []
+        for i in opcoes[0]['opcoes']:
+            if i=='(':
+                nome_selecionavel = palavra
+                print(nome_selecionavel)
+                palavra =''
+            elif i=='-':
+                selecionaveis.append(palavra)
+                palavra=''
+            elif i==')':
+                selecionaveis.append(palavra)
+                dados.append({nome_selecionavel:selecionaveis})
+                selecionaveis=[]
+                palavra=''
+            else:
+                palavra+=i
+        print (dados)
+        socketio.emit('ativar_opcoes',{'options':dados})
 
 
 @socketio.on('get_ingredientes')
@@ -610,48 +645,57 @@ def handle_get_cardapio(data):
     try:
         if type(data) == str:
             fcomanda = data
+            ordem = 0
 
         else:
             fcomanda = data.get('fcomanda')
-
+            ordem = data.get('ordem')
         if not fcomanda:
             raise ValueError('Comanda não informada')
+        if ordem==0:
+            valor_pago = db.execute(
+                'SELECT valor_pago FROM valores_pagos WHERE comanda = ? AND ordem = ?', fcomanda, ordem)
+            total_comanda = db.execute('''
+                SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
+            ''', fcomanda, ordem)
+            v_comanda_existe = db.execute(
+                'SELECT pedido FROM pedidos WHERE comanda = ? AND ordem = ?', fcomanda, ordem)
 
-        valor_pago = db.execute(
-            'SELECT valor_pago FROM valores_pagos WHERE comanda = ? AND ordem = ?', fcomanda, 0)
-        total_comanda = db.execute('''
-            SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?
-        ''', fcomanda, 0)
-        v_comanda_existe = db.execute(
-            'SELECT pedido FROM pedidos WHERE comanda = ? AND ordem = ?', fcomanda, 0)
+            if v_comanda_existe:
+                preco_total = float(
+                    total_comanda[0]['total']) if total_comanda else 0
+                preco_pago = float(
+                    valor_pago[0]['valor_pago']) if valor_pago else 0
+                print(preco_pago)
+                print(preco_total)
 
-        if v_comanda_existe:
-            preco_total = float(
-                total_comanda[0]['total']) if total_comanda else 0
-            preco_pago = float(
-                valor_pago[0]['valor_pago']) if valor_pago else 0
-            print(preco_pago)
-            print(preco_total)
-
-            dados = db.execute('''
-                SELECT pedido,id,ordem,nome, SUM(quantidade) AS quantidade, SUM(preco) AS preco
-                FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido
-            ''', fcomanda, 0)
-            nomes = db.execute(
-                'SELECT nome FROM pedidos WHERE comanda = ? AND ordem = ? AND nome != ? GROUP BY nome', fcomanda, 0, '-1')
-            print(dados)
-            print(type(dados))
-            # Emitir os dados mais recentes da comanda e atualizar no frontend
-            preco_a_pagar = preco_total-preco_pago
-            emit('preco', {'preco_a_pagar': preco_a_pagar, 'preco_total': preco_total, 'preco_pago': preco_pago,
-                           'dados': dados, 'comanda': fcomanda, 'nomes': nomes}, broadcast=True)
+                dados = db.execute('''
+                    SELECT pedido,id,ordem,nome, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+                    FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido
+                ''', fcomanda, ordem)
+                nomes = db.execute(
+                    'SELECT nome FROM pedidos WHERE comanda = ? AND ordem = ? AND nome != ? GROUP BY nome', fcomanda, ordem, '-1')
+                print(dados)
+                print(type(dados))
+                # Emitir os dados mais recentes da comanda e atualizar no frontend
+                preco_a_pagar = preco_total-preco_pago
+                emit('preco', {'preco_a_pagar': preco_a_pagar, 'preco_total': preco_total, 'preco_pago': preco_pago,
+                            'dados': dados, 'comanda': fcomanda, 'nomes': nomes}, broadcast=True)
+            else:
+                emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': '', 'nomes': '',
+                    'comanda': fcomanda}, broadcast=True)
         else:
-            emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': '', 'nomes': '',
-                 'comanda': fcomanda}, broadcast=True)
+            dados = db.execute('''
+                    SELECT pedido,id,ordem,nome, SUM(quantidade) AS quantidade, SUM(preco) AS preco
+                    FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido
+                ''', fcomanda, ordem)
+            emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': dados, 'nomes': '',
+                    'comanda': fcomanda}, broadcast=True)
 
     except Exception as e:
         print("Erro ao calcular preço:", e)
         emit('error', {'message': str(e)})
+
 
 
 if __name__ == "__main__":
