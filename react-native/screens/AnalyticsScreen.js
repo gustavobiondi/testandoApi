@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Button } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { UserContext } from "../UserContext";
 
 export default class Analytics extends React.Component {
@@ -13,49 +13,69 @@ export default class Analytics extends React.Component {
       username: "",
       cargo: "",
       showAnalytics: false,
+      refreshing: false, // Estado para pull-to-refresh
     };
   }
 
   componentDidMount() {
-    const { user } = this.context;
-
-    // Atualiza o estado com as informações do usuário
-    this.setState({ username: user.username, cargo: user.cargo });
-
-    // Verifica se o cargo do usuário é 'ADM' antes de buscar os dados
-    if (user.cargo === "ADM") {
-      this.setState({ showAnalytics: true });
-
-      // Faz a requisição ao backend para obter o faturamento
-      fetch("http://192.168.15.16:5000/faturamento", {
-        method: "GET",
-      })
-        .then((resp) => resp.json())
-        .then((data) => {
-          // Verifica se a resposta tem dados válidos
-          if (data && data.faturamento !== null) {
-            this.setState({ faturamento: data.faturamento, dia: data.dia });
-          }
-        })
-        .catch((error) => {
-          console.error("Erro ao buscar faturamento:", error);
-        });
-    }
+    this.initializeData();
   }
 
+  // Função para inicializar os dados
+  initializeData = () => {
+    const { user } = this.context;
+
+    this.setState({ username: user.username, cargo: user.cargo });
+
+    if (user.cargo === "ADM") {
+      this.setState({ showAnalytics: true });
+      this.fetchFaturamento();
+    }
+  };
+
+  // Função para buscar o faturamento do backend
+  fetchFaturamento = () => {
+    this.setState({ refreshing: true });
+
+    fetch("http://192.168.1.21:5000/faturamento", {
+      method: "GET",
+    })
+      .then((resp) => resp.json())
+      .then((data) => {
+        if (data && data.faturamento !== null) {
+          this.setState({ faturamento: data.faturamento, dia: data.dia });
+        }
+        this.setState({ refreshing: false });
+      })
+      .catch((error) => {
+        console.error("Erro ao buscar faturamento:", error);
+        this.setState({ refreshing: false });
+      });
+  };
+
   render() {
-    const { showAnalytics, faturamento, dia } = this.state;
+    const { showAnalytics, faturamento, dia, refreshing } = this.state;
 
     return (
-      <View>
-        {showAnalytics ? (
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={this.initializeData}
+          />
+        }
+      >
+        <View style={{ padding: 20 }}>
+          {showAnalytics ? (
             <Text>
               Faturamento do dia {dia}: {faturamento}
             </Text>
-          ):(
-          <Text>Você não tem permissão para acessar essa tela</Text>
-        )}
-      </View>
+          ) : (
+            <Text>Você não tem permissão para acessar essa tela</Text>
+          )}
+        </View>
+      </ScrollView>
     );
   }
 }

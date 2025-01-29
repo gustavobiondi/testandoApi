@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Text, StyleSheet, Button, TextInput } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button, TextInput, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 
 export default class EstoqueScreen extends React.Component {
@@ -11,19 +11,27 @@ export default class EstoqueScreen extends React.Component {
       showEditar: false,
       itensAlterados: [],
       estoque: '',
+      refreshing: false,  // Adicionando o estado de refresh
     };
+    this.refreshData = this.refreshData.bind(this);
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.refreshData();  // Carregar os dados ao montar o componente
+  }
 
-    this.socket.on('connect', () => {
-      console.log('Conectado ao servidor');
-    });
+  refreshData() {
+    this.setState({ refreshing: true }); // Inicia o refresh
+    this.socket = io('http://192.168.1.21:5000');
+    
 
     this.socket.on('initial_data', (data) => {
       console.log('Dados iniciais recebidos:', data);
-      this.setState({ data: data.dados_estoque, dataGeral: data.dados_estoque });
+      this.setState({
+        data: data.dados_estoque,
+        dataGeral: data.dados_estoque,
+        refreshing: false, // Finaliza o refresh
+      });
     });
   }
 
@@ -88,6 +96,7 @@ export default class EstoqueScreen extends React.Component {
   };
 
   render() {
+    const {refreshing} = this.state
     return (
       <View style={styles.container}>
         <View style={styles.tableHeader}>
@@ -99,11 +108,11 @@ export default class EstoqueScreen extends React.Component {
           />
           {!this.state.showEditar ? (
             <Button title="Editar" onPress={() => this.setState({ showEditar: true })} />
-          ) :  (
-              <Button title="Confirmar" onPress={this.handleConfirmar} />
-            )
-          }
+          ) : (
+            <Button title="Confirmar" onPress={this.handleConfirmar} />
+          )}
         </View>
+
         <FlatList
           data={this.state.data}
           keyExtractor={(item, index) => index.toString()}
@@ -126,6 +135,12 @@ export default class EstoqueScreen extends React.Component {
               )}
             </View>
           )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={this.refreshData}  // Chama a função de refresh ao arrastar
+            />
+          }
         />
       </View>
     );

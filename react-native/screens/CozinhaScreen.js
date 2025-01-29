@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 
 export default class Cozinha extends React.Component {
@@ -7,75 +7,92 @@ export default class Cozinha extends React.Component {
     super(props);
     this.state = {
       data: [],
-      data_filtrado:[],
-      showFiltrado:false
+      data_filtrado: [],
+      showFiltrado: false,
+      refreshing: false, // Estado para gerenciar o "pull-to-refresh"
     };
+    this.refreshData = this.refreshData.bind(this);
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.refreshData();
+  }
+
+  refreshData() {
+    this.setState({ refreshing: true });
+    this.socket = io('http://192.168.1.21:5000');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
-      const data_temp = dados.dados_pedido.filter(item => item.categoria === '3')
-      this.setState({ data:data_temp});
-      console.log(data_temp)
-      const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto")
-      this.setState({data_filtrado:data_temp_filtrado})
-      console.log(data_temp_filtrado)
+      const data_temp = dados.dados_pedido.filter(item => item.categoria === '3');
+      const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto");
+
+      this.setState({
+        data: data_temp,
+        data_filtrado: data_temp_filtrado,
+        refreshing: false,
+      });
     });
-
-
   }
+
   componentWillUnmount() {
-    this.socket.off('initial_data');
+    if (this.socket) {
+      this.socket.off('initial_data');
+    }
   }
-  alterar_estado(id,estado){
-    this.socket.emit('inserir_preparo',{id,estado})
+
+  alterar_estado(id, estado) {
+    this.socket.emit('inserir_preparo', { id, estado });
   }
-  filtrar= () =>{
+
+  filtrar = () => {
     this.setState(prevState => ({
-      showFiltrado:!prevState.showFiltrado
-    }))
-  }
+      showFiltrado: !prevState.showFiltrado,
+    }));
+  };
 
   render() {
     const dataToShow = this.state.showFiltrado
       ? this.state.data
       : this.state.data_filtrado;
+
     return (
       <View style={styles.container}>
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Comanda</Text>
           <Text style={styles.headerText}>Pedido</Text>
-          <Text style={styles.headerText}>Horario Envio</Text>
-          <Text style={styles.headerText}>Estado</Text>
+         
           {this.state.showFiltrado ? (
-            <Button title='Filtrar' onPress={this.filtrar} />
+            <Button title="Filtrar" onPress={this.filtrar} />
           ) : (
-            <Button title='Todos' onPress={this.filtrar} />
+            <Button title="Todos" onPress={this.filtrar} />
           )}
         </View>
         <FlatList
           data={dataToShow}
-          renderItem={({ item,index }) => (
+          renderItem={({ item }) => (
             <View style={styles.tableRow}>
               <Text style={styles.itemText}>{item.comanda}</Text>
               <Text style={styles.itemText}>{item.pedido} {item.extra}</Text>
-              <Text style={styles.itemText}>{item.inicio}</Text>
-              <Text style={styles.itemText}>{item.estado}</Text>
-              {item.estado==="Em Preparo" ? (
-                <Button title='Pronto' onPress={() => this.alterar_estado(item.id,'Pronto')}/>
-              )
-              :(item.estado === "A Fazer" ?( 
-                <Button title='Começar' onPress={() => this.alterar_estado(item.id,'Em Preparo')}/>
-              ):(
-                <Button title='Desfazer' onPress={() => this.alterar_estado(item.id,'A Fazer')}/>
-              )
+            
+              {item.estado === "Em Preparo" ? (
+                <View>
+                <Button color='orange' title="Pronto" onPress={() => this.alterar_estado(item.id, 'Pronto')} />
+                  </View>
+              ) : item.estado === "A Fazer" ? (
+                <Button color='blue'title="Começar" onPress={() => this.alterar_estado(item.id, 'Em Preparo')} />
+              ) : (
+                <Button color='green'title="Desfazer" onPress={() => this.alterar_estado(item.id, 'A Fazer')} />
               )}
             </View>
           )}
           keyExtractor={(item, index) => index.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.refreshing}
+              onRefresh={this.refreshData} // Chama o método de atualização ao puxar para baixo
+            />
+          }
         />
       </View>
     );

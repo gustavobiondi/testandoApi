@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Text, StyleSheet, Button, TextInput, Modal, TouchableOpacity } from 'react-native';
+import { View, FlatList, Text, StyleSheet, TextInput, Modal, TouchableOpacity, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 
 export default class PedidosScreen extends React.Component {
@@ -13,68 +13,74 @@ export default class PedidosScreen extends React.Component {
       showModal: false,
       pedidoModal: {},
       editable: false,
+      refreshing: false, // Adicionado para gerenciar o estado de refresh
     };
+    this.refreshData = this.refreshData.bind(this);
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.refreshData();
+  }
+
+  refreshData() {
+    this.setState({ refreshing: true });
+    this.socket = io('http://192.168.1.21:5000');
     this.socket.on('initial_data', (dados) => {
-      console.log(dados);
-      if (dados.dados_pedido){
-      this.setState({ data: dados.dados_pedido });
+      if (dados.dados_pedido) {
+        const arrayInvertido = dados.dados_pedido.reverse(); // Reverte a ordem dos pedidos
+        this.setState({ data: arrayInvertido, refreshing: false });
       }
     });
   }
 
   componentWillUnmount() {
-    this.socket.disconnect();
+    if (this.socket) {
+      this.socket.disconnect();
+    }
   }
 
   alterarPedido = (campo, valor) => {
     this.setState(prevState => ({
-      pedidoModal: { ...prevState.pedidoModal, [campo]: valor }
+      pedidoModal: { ...prevState.pedidoModal, [campo]: valor },
     }));
   };
 
   abrirModal = (item) => {
-    this.setState({ pedidoModal: item, showModal: true,});
+    this.setState({ pedidoModal: item, showModal: true });
   };
 
   handleConfirmar = () => {
-    
-    this.socket.emit('atualizar_pedidos', {'pedidoAlterado':this.state.pedidoModal});
-    this.setState({editable:false, pedidoModal:{},showModal:false})
-    
-  };
-
-  handleCancelar = () => {
-    this.setState({ data: this.state.dados_antigos, showEditar: false });
+    this.socket.emit('atualizar_pedidos', { pedidoAlterado: this.state.pedidoModal });
+    this.setState({ editable: false, pedidoModal: {}, showModal: false });
   };
 
   render() {
-    const { data } = this.state;
-    return (       
+    const { data, refreshing } = this.state;
+    return (
       <View style={{ flex: 1 }}>
-      <FlatList
-        data={data}
-        keyExtractor={(item, index) => index.toString()}
-        inverted
-        ListFooterComponent={<View style={{ height: this.state.data.length > 0 ? 0 : 200 }} />}
-        renderItem={({ item }) => (
-          <View style={styles.tableRow}>
-            <TouchableOpacity
-              onPress={() => this.abrirModal(item)}
-              style={styles.itemContainer}
-            >
-              <Text style={styles.itemText}>
-                {item.quantidade} {item.pedido} ({item.comanda}) - {item.inicio}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+        <FlatList
+          data={data}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.tableRow}>
+              <TouchableOpacity
+                onPress={() => this.abrirModal(item)}
+                style={styles.itemContainer}
+              >
+                <Text style={styles.itemText}>
+                  {item.quantidade} {item.pedido} ({item.comanda}) - {item.inicio}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={this.refreshData} // Chama o método de atualização ao puxar para baixo
+            />
+          }
+        />
 
-        
         {/* Modal */}
         <Modal
           animationType="slide"
@@ -86,47 +92,42 @@ export default class PedidosScreen extends React.Component {
             <View style={styles.modalContent}>
               {/* Botões de Edição */}
               {this.state.editable ? (
-              <TouchableOpacity
-              style={[styles.EitButton,{backgroundColor:'green'}]}
-              onPress={this.handleConfirmar}
-              >
-              <Text style={styles.buttonText}>Confirmar</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.EitButton, { backgroundColor: 'green' }]}
+                  onPress={this.handleConfirmar}
+                >
+                  <Text style={styles.buttonText}>Confirmar</Text>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                style={[styles.EitButton,{backgroundColor:'blue'}]}
-                onPress={() => this.setState({ editable:true })}
-              >
-                <Text style={styles.buttonText}>Editar</Text>
-              </TouchableOpacity>
-             )}
+                  style={[styles.EitButton, { backgroundColor: 'blue' }]}
+                  onPress={() => this.setState({ editable: true })}
+                >
+                  <Text style={styles.buttonText}>Editar</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Campos de Edição */}
-              {["comanda", "pedido", "quantidade", "extra", "preco"].map((campo) => (
-              
-                <View key={campo} style={{flexDirection:'row',alignItems:'center'}}>
-                <Text>{campo}: </Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={String(this.state.pedidoModal[campo] || '')}
-                  editable={this.state.editable}
-                  onChangeText={(text) => this.alterarPedido(campo, text)}
-                  placeholder={`Digite ${campo}`}
-                />
+              {['comanda', 'pedido', 'quantidade', 'extra', 'preco'].map((campo) => (
+                <View key={campo} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text>{campo}: </Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={String(this.state.pedidoModal[campo] || '')}
+                    editable={this.state.editable}
+                    onChangeText={(text) => this.alterarPedido(campo, text)}
+                    placeholder={`Digite ${campo}`}
+                  />
                 </View>
               ))}
 
               {/* Botão para Fechar o Modal */}
-              
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => this.setState({ showModal: false, editable:false})}
+                onPress={() => this.setState({ showModal: false, editable: false })}
               >
                 <Text style={styles.buttonText}>Fechar</Text>
               </TouchableOpacity>
-              
-            
-
             </View>
           </View>
         </Modal>
@@ -139,24 +140,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-  },
-  editButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  headerText: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
@@ -186,12 +169,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 10,
-  },
   modalInput: {
     width: '70%',
     fontSize: 16,
@@ -217,4 +194,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

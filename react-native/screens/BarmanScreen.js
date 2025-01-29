@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, Text, StyleSheet, Button } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Button,RefreshControl,Modal,TouchableOpacity } from 'react-native';
 import io from 'socket.io-client';
 
 export default class BarmanScreen extends React.Component {
@@ -9,36 +9,44 @@ export default class BarmanScreen extends React.Component {
       data: [],
       data_filtrado: [],
       showFiltrado: true,
-      showExtra: [],
-      ingredientes: [], // Inicializa como um array vazio
+      ingredientes: [],
+      refreshing:false,
+      showModal:false, // Inicializa como um array vazio
     };
+    this.refreshData = this.refreshData.bind(this);
+    this.alterar_estado = this.alterar_estado.bind(this);
+    this.filtrar = this.filtrar.bind(this);
+    this.extra = this.extra.bind(this);
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://192.168.1.21:5000');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
+      console.log(dados)
       const data_temp = dados.dados_pedido.filter(item => item.categoria === '2');
-      this.setState({ data: data_temp });
+      this.setState({ data: data_temp});
 
       const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto");
       this.setState({ data_filtrado: data_temp_filtrado });
 
+      this.socket.on('ingrediente', ({data}) => {
+        console.log(data)
+        this.setState({ ingredientes: data});
+      });
+  })}
+
+  refreshData(){
+    
+    this.setState({ refreshing: true });
+    this.socket.emit('refresh')
+
       // Inicializar showExtra e ingredientes com arrays do mesmo tamanho de data_temp
       this.setState({ 
-        showExtra: Array(data_temp.length).fill(false),
-        ingredientes: Array(data_temp.length).fill('') // Inicializa ingredientes como strings vazias
+        refreshing:false,
       });
-    });
-
-    // Ouvir evento de retorno dos ingredientes
-    this.socket.on('ingrediente', ({ ingrediente, index }) => {
-      const temp = [...this.state.ingredientes]; // Faz uma cópia do array de ingredientes
-      temp[index] = ingrediente; // Atualiza o ingrediente no índice correspondente
-      this.setState({ ingredientes: temp });
-    });
-  }
+    }
 
   componentWillUnmount() {
     this.socket.off('initial_data');
@@ -58,29 +66,20 @@ export default class BarmanScreen extends React.Component {
   // Método para alternar a visualização do "extra" e buscar ingredientes
   extra(index) {
     const { data_filtrado } = this.state;
-    this.setState(prevState => {
-      const updatedShowExtra = [...prevState.showExtra]; // Faz uma cópia do array
-      updatedShowExtra[index] = !updatedShowExtra[index]; // Inverte o valor no índice correto
-      return { showExtra: updatedShowExtra }; // Atualiza o estado com o novo array
-    });
-
-    // Solicita ingredientes apenas se o botão for clicado para exibir os extras
-    if (!this.state.showExtra[index]) {
-      this.socket.emit('get_ingredientes', { ingrediente: data_filtrado[index].pedido, index });
-    }
+    this.setState(prevState => ({showModal:!prevState.showModal }));
+    this.socket.emit('get_ingredientes', { ingrediente: data_filtrado[index].pedido});
   }
 
   render() {
     const dataToShow = this.state.showFiltrado
       ? this.state.data_filtrado
       : this.state.data;
-  
+    const {refreshing} = this.state
     return (
-      <View style={styles.container}>
+      <View style={styles.container} >
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Pedido</Text>
           <Text style={styles.headerText}>Horario Envio</Text>
-          <Text style={styles.headerText}>Estado</Text>
           <Button
             title={this.state.showFiltrado ? 'Todos' : 'Filtrar'}
             onPress={this.filtrar}
@@ -92,50 +91,76 @@ export default class BarmanScreen extends React.Component {
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item, index }) => (
             <View >
-  
-              {this.state.showExtra[index] ? (
-            <View style={styles.tableRow}>
-                  <Text style={styles.itemText}>
-                {item.quantidade} {item.pedido} {item.extra} ({item.comanda})
-              </Text>
-                  <Button
-                    title="-"
-                    color="red"
-                    onPress={() => this.extra(index)}
-                  />
-                  <Text style={styles.itemText}>
-                    {this.state.ingredientes[index]}
-                  </Text>
-                </View>
-              ) : (
                 <View style={styles.tableRow}>
                   <Text style={styles.itemText}>
                 {item.quantidade} {item.pedido} {item.extra} ({item.comanda})
               </Text>
                   <Button title="+" onPress={() => this.extra(index)} />
                   <Text style={styles.itemText}>{item.inicio}</Text>
-                  <Text style={styles.itemText}>{item.estado}</Text>
+         
                   {item.estado === 'Em Preparo' ? (
                     <Button
-                      title="Pronto"
+                      title="Terminar"
+                      color={'green'}
                       onPress={() => this.alterar_estado(item.id, 'Pronto')}
                     />
                   ) : item.estado === 'A Fazer' ? (
                     <Button
                       title="Começar"
+                      color={'blue'}
                       onPress={() => this.alterar_estado(item.id, 'Em Preparo')}
                     />
                   ) : (
                     <Button
                       title="Desfazer"
+                      color={'red'}
                       onPress={() => this.alterar_estado(item.id, 'A Fazer')}
                     />
                   )}
                 </View>
-              )}
             </View>
           )}
+          
+
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={this.refreshData} // Chama a função de busca ao arrastar para baixo
+            />
+          }
         />
+        
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={this.state.showModal}
+          onRequestClose={() => this.setState({ showModal: false })}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <FlatList
+              data={this.state.ingredientes}
+              keyExtractor={(item,index)=>index.toString}
+              renderItem={({item,index})=>(
+                <View style={{justifyContent:'center'}}>
+                <View style={{flexDirection:'row'}}>
+                <Text>{item.key}   :   {item.dado}</Text>
+                </View>
+                <Text>     -------------     </Text>
+                </View>
+
+              )}
+              />
+              
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => this.setState({ showModal: false,ingredientes:[]})}
+              >
+                <Text style={styles.buttonText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -154,6 +179,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  closeButton: {
+    backgroundColor: '#FF6347',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 15,
   },
   headerText: {
     flex: 1,

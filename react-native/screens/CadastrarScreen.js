@@ -22,7 +22,7 @@ export default class Cadastro extends React.Component{
             this.setState({senha2:''})
         }
         else{
-            fetch('http://192.168.15.16:5000/cadastrar',{
+            fetch('http://192.168.1.21:5000/cadastrar',{
                 method:'POST',
                 headers:{
                     'Content-Type':'application/json'
