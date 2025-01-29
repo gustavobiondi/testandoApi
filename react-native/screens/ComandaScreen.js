@@ -28,7 +28,7 @@ class ComandaScreen extends React.Component {
       ShowBrinde:false,
       nomes,
       brindeFiltrado:[],
-      
+      itensAlterados:[],
     };
   }
 
@@ -37,7 +37,7 @@ class ComandaScreen extends React.Component {
     console.log(this.state.fcomanda)
    
 
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://192.168.1.21:5000');
 
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
@@ -117,29 +117,51 @@ class ComandaScreen extends React.Component {
   }
 
 
-  apagarPedidos = (index)=>{
-    this.setState(prevState=>{
-      const quantidadeAtualizada = prevState.data
-      quantidadeAtualizada[index]['quantidade']-=1
-      return{
-        data:quantidadeAtualizada
-      }
-    })
-  }
-  
-  adicionarPedidos = (index)=>{
-    this.setState(prevState=>{
-      const quantidadeAtualizada = prevState.data
-      quantidadeAtualizada[index]['quantidade']+=1
-      return{
-        data:quantidadeAtualizada
-      }
-    })
-  }
+    apagarPedidos = (index) => {
+      const dataAtualizada = [...this.state.data];
+      // Fazendo uma cópia profunda do objeto no índice
+      const itemAtualizado = { ...dataAtualizada[index] };
+      const preco_u =parseFloat(itemAtualizado.preco)/parseFloat(itemAtualizado.quantidade)
+      itemAtualizado.preco = (parseFloat(itemAtualizado.preco)-preco_u).toString()
+      itemAtualizado.quantidade = (parseInt(itemAtualizado.quantidade) - 1).toString();
+      
+      dataAtualizada[index] = itemAtualizado; // Substitui o item no array
+      this.setState({ data: dataAtualizada });
+      this.atualizarItensAlterados(itemAtualizado);
+  };
+
+  adicionarPedidos = (index) => {
+      const dataAtualizada = [...this.state.data];
+      // Fazendo uma cópia profunda do objeto no índice
+      const itemAtualizado = { ...dataAtualizada[index] };
+      const preco_u =parseFloat(itemAtualizado.preco)/parseFloat(itemAtualizado.quantidade)
+      itemAtualizado.preco = (parseFloat(itemAtualizado.preco)+preco_u).toString()
+      itemAtualizado.quantidade = (parseInt(itemAtualizado.quantidade) + 1).toString();
+      dataAtualizada[index] = itemAtualizado; // Substitui o item no array
+      this.setState({ data: dataAtualizada });
+      this.atualizarItensAlterados(itemAtualizado);
+  };
+
+
+  atualizarItensAlterados = (itemAtualizado) => {
+    this.setState((prevState) => {
+      const pedidoNaLista = prevState.itensAlterados.some(
+        (item) => item.pedido === itemAtualizado.pedido && parseFloat(item.preco)/parseFloat(item.quantidade)===parseFloat(itemAtualizado.preco)/parseFloat(itemAtualizado.quantidade));
+
+      const itensAlteradosAtualizados = pedidoNaLista
+        ? prevState.itensAlterados.map((item) =>
+            item.pedido === itemAtualizado.pedido ? itemAtualizado : item
+          )
+        : [...prevState.itensAlterados, itemAtualizado];
+
+      return { itensAlterados: itensAlteradosAtualizados };
+    });
+  };
+
   changeBrinde = (pedido) => {
     this.setState({ Brinde:pedido});
     if (pedido) {
-      fetch('http://192.168.15.16:5000/changeBrinde',{
+      fetch('http://192.168.1.21:5000/changeBrinde',{
         method:'POST',
         headers:{
           'Content-Type': 'application/json'
@@ -168,14 +190,12 @@ class ComandaScreen extends React.Component {
     })
   }
   
-  confirmar = () =>{
-    const {fcomanda,data} = this.state
-    this.socket.emit('atualizar_comanda',{dados:data, comanda:fcomanda})
-    this.setState({
-      showBotoes:false,
-    })
-  }
-
+  confirmar = () => {
+    const { itensAlterados, fcomanda} = this.state;
+    this.socket.emit('atualizar_comanda', { itensAlterados:itensAlterados, comanda:fcomanda });
+    this.setState({ showBotoes: false, itensAlterados: [] });
+  };
+  
   confirmarBrinde = () =>{
     const {fcomanda, Brinde,username} = this.state
     const horario = new Date().toTimeString().slice(0, 5);
@@ -194,7 +214,7 @@ class ComandaScreen extends React.Component {
       this.setState(prevState=>({
         ordem:ordem-1
       }))
-      fetch('http://192.168.15.16:5000/pegar_pedidos', {
+      fetch('http://192.168.1.21:5000/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -218,7 +238,7 @@ class ComandaScreen extends React.Component {
       this.setState(prevState=>({
         ordem:ordem+1
       }))
-      fetch('http://192.168.15.16:5000/pegar_pedidos', {
+      fetch('http://192.168.1.21:5000/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -298,7 +318,7 @@ class ComandaScreen extends React.Component {
         
         {this.state.data.length>0 && this.state.data.map((item,index)=>(
           <View key={index} style={styles.tableRow}>
-          <Text style={styles.itemText}>{item.pedido}</Text>
+          <Text style={styles.itemText}>{item.pedido} {item.extra}</Text>
           <Text style={styles.itemText}>{item.quantidade}</Text>
           <Text style={styles.itemText}>{item.preco}</Text>
           {this.state.showBotoes && (

@@ -8,6 +8,7 @@ import BarmanScreen from './screens/BarmanScreen';
 import Cozinha from './screens/CozinhaScreen';
 import ComandaScreen from './screens/ComandaScreen';
 import EstoqueScreen from './screens/EstoqueScreen';
+import EstoqueGeral from './screens/EstoqueGeral.js';
 import Login from './screens/LoginScreen';
 import ChoseUser from './screens/ChoseUser';
 import { UserContext, UserProvider } from './UserContext'; // Import UserProvider and context
@@ -15,7 +16,7 @@ import PedidosScreen from './screens/PedidosScreen';
 import Analytics from './screens/AnalyticsScreen';
 import Cadastro from './screens/CadastrarScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import verComandas from './screens/Comandas';
+import verComandas from './screens/Comandas.js';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 
@@ -77,7 +78,8 @@ function AuthNavigator() {
           <Drawer.Screen name="Barman" component={BarmanScreen} />
           <Drawer.Screen name="Cozinha" component={Cozinha} />
           <Drawer.Screen name="Pedidos" component={PedidosScreen} />
-          <Drawer.Screen name="Estoque" component={EstoqueScreen} />
+          <Drawer.Screen name="Estoque Carrinho" component={EstoqueScreen} />
+          <Drawer.Screen name="Estoque Geral" component={EstoqueGeral} />
           <Drawer.Screen name="Analytics" component={Analytics} />
           <Drawer.Screen name="Users" component={ChoseUser} />
           <Drawer.Screen name="Cadastrar" component={Cadastro} />

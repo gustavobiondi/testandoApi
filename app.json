@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "edb540b6-7126-4afe-9741-b6e4d4beb047"
+      }
+    },
+    "android": {
+      "package": "com.gbiondi.testandoapi"
+    },
+    "ios": {
+      "bundleIdentifier": "com.ios.app"
+    }
+  }
+}

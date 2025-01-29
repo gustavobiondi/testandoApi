@@ -48,7 +48,7 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://192.168.1.21:5000');
     this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
     this.socket.on('preco', (data) => this.setState({ preco: data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total}));
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
@@ -135,7 +135,7 @@ export default class HomeScreen extends React.Component {
       this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false,nome:'',nomeSelecionado:[],showComanda:false,opcoesSelecionadas:[],selecionados:[]});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
-      fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
+      fetch('http://192.168.1.21:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -218,7 +218,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, quantidade} = this.state;
-    fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
+    fetch('http://192.168.1.21:5000/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -345,6 +345,7 @@ export default class HomeScreen extends React.Component {
                                   );
                                 } else {
                                   // Caso contrário, adicionamos o item à lista de selecionados
+                                  
                                   selecionados.push(item);
                                 }
 
