@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "NossoPoint",
+    "slug": "NossoPoint",
+    "version": "1.0.0",
+    "main":"index.js",
+    "extra": {
+      "eas": {
+        "projectId": "eb1e1907-f32a-4596-a5a8-6bafabd1227f"
+      }
+    }
+  }
+}

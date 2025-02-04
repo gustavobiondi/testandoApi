@@ -9,3 +9,7 @@ __pycache__/
 # Ignore other common files and folders
 *.log
 *.env
+.expo/
+.vscode/
+node_modules/
+    
