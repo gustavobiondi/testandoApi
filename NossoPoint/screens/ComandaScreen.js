@@ -37,7 +37,7 @@ class ComandaScreen extends React.Component {
     console.log(this.state.fcomanda)
    
 
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
 
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
@@ -161,7 +161,7 @@ class ComandaScreen extends React.Component {
   changeBrinde = (pedido) => {
     this.setState({ Brinde:pedido});
     if (pedido) {
-      fetch('http://192.168.15.16:5000/changeBrinde',{
+      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/changeBrinde',{
         method:'POST',
         headers:{
           'Content-Type': 'application/json'
@@ -208,13 +208,11 @@ class ComandaScreen extends React.Component {
 
   atualizarOrdem = (sinal,ordem) =>{
     if (sinal==='-' && this.state.ordem>0){
-      if (ordem-1===1){
-        this.setState({showPagamento:false})
-      }
-      this.setState(prevState=>({
+
+      this.setState({
         ordem:ordem-1
-      }))
-      fetch('http://192.168.15.16:5000/pegar_pedidos', {
+      })
+      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -226,19 +224,19 @@ class ComandaScreen extends React.Component {
       })
         .then(resp => resp.json()) // Garante que resp.json() seja retornado
         .then(data => {
+          if(data){
           this.setState({ data:data.data,dataGeral:data.data,preco:data.preco });
-        console.log(data)  
+        console.log(data) 
+          }
         })
         .catch(error => console.error('Erro ao buscar pedidos:', error));
     }
     else if (sinal === '+'){
-      if (ordem+1===1){
-        this.setState({showPagamento:false})
-      }
-      this.setState(prevState=>({
+ 
+      this.setState({
         ordem:ordem+1
-      }))
-      fetch('http://192.168.15.16:5000/pegar_pedidos', {
+      })
+      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -250,7 +248,9 @@ class ComandaScreen extends React.Component {
       })
         .then(resp => resp.json()) // Garante que resp.json() seja retornado
         .then(data => {
-          this.setState({ data:data.data,dataGeral:data.data,preco:data.preco });})
+          if (data){
+          this.setState({ data:data.data,dataGeral:data.data,preco:data.preco });}
+    })
         .catch(error => console.error('Erro ao buscar pedidos:', error));
     }
   }
@@ -275,7 +275,7 @@ class ComandaScreen extends React.Component {
 
     return (
       <ScrollView style={styles.container}>
-        {/* Header da comanda e botões de ordem */}
+       
         <View style={{ flexDirection: 'row', justifyContent: 'space-between',alignItems:'center' }}>
           <Text>Comanda {this.state.fcomanda}</Text>
             <Button title='<' onPress={() => this.atualizarOrdem('+', this.state.ordem)} />
@@ -287,7 +287,6 @@ class ComandaScreen extends React.Component {
           {this.state.showBotoes && (
             <View style={styles.tableRow}>
             <Button title='Cancelar' color={'red'} onPress={this.cancelar}/>
-            <Text>    </Text>
             <Button title='Confirmar' onPress={this.confirmar} />
             </View>
           )}
@@ -298,18 +297,16 @@ class ComandaScreen extends React.Component {
           <Button title="Geral" onPress={this.dataComnpleto} />
           {this.state.nomes.map((item, index) => (
             <View key={index} style={{flexDirection: 'row'}}>
-              <Text>  </Text>
               <Button title={item.nome} onPress={() => this.filtrarPorNome(item.nome)} />
             </View>
           ))}
-          <Text>  </Text>
           <Button title='Sem Nome' color={'orange'} onPress={() => this.filtrarPorNome('-1')} />
         </View>
         )}
 
 
   
-        {/* Tabela de pedidos */}
+       
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Pedido</Text>
           <Text style={styles.headerText}>Quant</Text>
@@ -332,7 +329,7 @@ class ComandaScreen extends React.Component {
 
 
   
-        {/* Resumo e opções de pagamento */}
+     
         {this.state.ordem === 0 ? (
           <View style={styles.summary}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
@@ -386,7 +383,7 @@ class ComandaScreen extends React.Component {
               )}
             </View>
             </View>
-            <KeyboardAvoidingView behavior='padding' >
+  
             <View style={{flexDirection:'row'}}>
             <TextInput
               placeholder="Quanto?"
@@ -397,10 +394,17 @@ class ComandaScreen extends React.Component {
             />
             <Button title='Pagar Parcial' onPress={this.pagarParcial} />
             </View>
-            </KeyboardAvoidingView>
+
           </View>
-        ) : (
-          this.state.ordem === 1 && this.state.data && <Button title='Desfazer Pagamento' onPress={this.desfazerPagamento} />
+        ) : (<View>
+          {this.state.ordem === 1 && this.state.data ?
+            (
+            <Button title='Desfazer Pagamento' onPress={this.desfazerPagamento} />
+          ):
+            (
+              <Text>não é possivel desfazer o pagamento</Text>
+            )}
+          </View>
         )}
       </ScrollView>
     );

@@ -20,11 +20,12 @@ export default class BarmanScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
       console.log(dados)
+      if(dados.dados_pedido){
       const data_temp = dados.dados_pedido.filter(item => item.categoria === '2');
       this.setState({ data: data_temp});
 
@@ -35,6 +36,7 @@ export default class BarmanScreen extends React.Component {
         console.log(data)
         this.setState({ ingredientes: data});
       });
+    }
   })}
 
   refreshData(){

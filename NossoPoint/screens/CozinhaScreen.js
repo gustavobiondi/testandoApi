@@ -20,18 +20,19 @@ export default class Cozinha extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true });
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
+      if(dados.dados_pedido){
       const data_temp = dados.dados_pedido.filter(item => item.categoria === '3');
       const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto");
-
+        
       this.setState({
         data: data_temp,
         data_filtrado: data_temp_filtrado,
         refreshing: false,
-      });
+      });}
     });
   }
 
