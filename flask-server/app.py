@@ -1,11 +1,10 @@
-import eventlet
-eventlet.monkey_patch()
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
 from cs50 import SQL
 from flask_cors import CORS
-import datetime
+from datetime import datetime
 import pytz
+import os
 
 
 # Inicialização do app Flask e SocketIO
@@ -50,8 +49,6 @@ def pegar_pedidos():
                 valor_pago[0]['valor_pago']) if valor_pago else 0
             print(preco_pago)
             print(preco_total)
-
-        # Retornando a lista de pedidos como JSON
             return {'data': dados, 'preco': preco_total-preco_pago}
     else:
         # Chama a função para pegar o cardápio se ordem for 0
@@ -83,7 +80,8 @@ def pegar_pedidos():
 
 @app.route('/faturamento', methods=['GET'])
 def faturamento():
-    dia = datetime.now().date()  # Obter a data atual
+    dia = datetime.now().date()
+ # Obter a data atual
 
     # Executar a consulta e pegar o resultado
     faturamento = db.execute(
@@ -343,12 +341,17 @@ def handle_insert_order(data):
                 'SELECT preco,categoria_id FROM cardapio WHERE item = ?', pedido)
             if preco_unitario:
                 categoria = preco_unitario[0]['categoria_id']
+                print('if')
+            else:
+                categoria = '4'
+                print('else')
             if not extra[i]:
                 extra[i] = " "
             if not nomes[i]:
                 nomes[i] = "-1"
             print("extra", extra)
             estava = 'a'
+
             if preco:
                 print('brinde')
                 db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra,username,ordem,nome) VALUES (?, ?, ?,?,?,?,?,?,?,?,?)',
@@ -429,6 +432,7 @@ def handle_atualizar_pedidos(data):
 def desfazer_pagamento(data):
     comanda = data.get('comanda')
     print(comanda)
+
     db.execute(
         'UPDATE pedidos SET ordem = ordem-? WHERE comanda = ? AND ordem>?', 1, comanda, 0)
     db.execute(
@@ -438,6 +442,8 @@ def desfazer_pagamento(data):
     dia = datetime.now().date()
     db.execute(
         'UPDATE pagamentos SET faturamento = faturamento - ? WHERE dia = ?', float(preco), dia)
+    
+    
     handle_get_cardapio(comanda)
 
 
@@ -586,6 +592,7 @@ def pesquisa(data):
                     pedidos_filtrados.append(pedido)
             else:
                 break
+        print(pedidos_filtrados)
         emit('pedidos', pedidos_filtrados)
 
 
@@ -647,7 +654,7 @@ def get_ingredientes(data):
 def inserir_preparo(data):
     id = data.get('id')
     estado = data.get('estado')
-    horario = datetime.datetime.now(pytz.timezone("America/Sao_Paulo")).strftime('%H:%M')
+    horario = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime('%H:%M')
 
     if estado == 'Pronto':
         db.execute('UPDATE pedidos SET fim = ? WHERE id = ?', horario, id)
@@ -841,4 +848,6 @@ def handle_get_cardapio(data):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 8000))
+    socketio.run(app, host='0.0.0.0', port=port)
+

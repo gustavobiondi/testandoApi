@@ -12,7 +12,6 @@ export default class Analytics extends React.Component {
       dia: null,
       username: "",
       cargo: "",
-      showAnalytics: false,
       refreshing: false, // Estado para pull-to-refresh
     };
   }
@@ -23,38 +22,28 @@ export default class Analytics extends React.Component {
 
   // Função para inicializar os dados
   initializeData = () => {
-    const { user } = this.context;
-
-    this.setState({ username: user.username, cargo: user.cargo });
-
-    if (user.cargo === "ADM") {
-      this.setState({ showAnalytics: true });
       this.fetchFaturamento();
     }
-  };
 
   // Função para buscar o faturamento do backend
   fetchFaturamento = () => {
-    this.setState({ refreshing: true });
 
-    fetch("http://192.168.15.16:5000/faturamento", {
+    fetch("http://flask-server-dev.sa-east-1.elasticbeanstalk.com/faturamento", {
       method: "GET",
     })
       .then((resp) => resp.json())
       .then((data) => {
-        if (data && data.faturamento !== null) {
+        if (data) {
           this.setState({ faturamento: data.faturamento, dia: data.dia });
         }
-        this.setState({ refreshing: false });
       })
       .catch((error) => {
         console.error("Erro ao buscar faturamento:", error);
-        this.setState({ refreshing: false });
       });
   };
 
   render() {
-    const { showAnalytics, faturamento, dia, refreshing } = this.state;
+    const { faturamento, dia, refreshing } = this.state;
 
     return (
       <ScrollView
@@ -67,13 +56,10 @@ export default class Analytics extends React.Component {
         }
       >
         <View style={{ padding: 20 }}>
-          {showAnalytics ? (
             <Text>
               Faturamento do dia {dia}: {faturamento}
             </Text>
-          ) : (
-            <Text>Você não tem permissão para acessar essa tela</Text>
-          )}
+
         </View>
       </ScrollView>
     );
