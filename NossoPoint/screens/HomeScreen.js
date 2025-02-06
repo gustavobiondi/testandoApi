@@ -48,11 +48,15 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com'); // Se o backend estiver na porta 5000
     this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
     this.socket.on('preco', (data) => this.setState({ preco: data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total}));
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
-    this.socket.on('pedidos', (res) => this.setState({ pedido_filtrado: res }));
+    this.socket.on('pedidos', (res)=>{
+      
+      this.setState({ pedido_filtrado: res })
+      console.log(res)
+    })
     this.socket.on('comandas',(res)=> this.setState({ comanda_filtrada: res }))
     this.socket.on('comandas_abrir',(res)=> this.setState({ comanda_filtrada_abrir: res }))
     this.socket.on('ativar_opcoes',({options})=>{
@@ -74,7 +78,7 @@ export default class HomeScreen extends React.Component {
             showPedidoSelecionado: false,
 
           }); 
-          alert('Quantidade Insuficiente : apenas '+data.quantidade+'no Estoque')
+          alert('Quantidade Insuficiente')
         } else {
           const { comand, pedido, quantidade, extra } = this.state;
           const currentTime = this.getCurrentTime();
@@ -135,7 +139,7 @@ export default class HomeScreen extends React.Component {
       this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false,nome:'',nomeSelecionado:[],showComanda:false,opcoesSelecionadas:[],selecionados:[]});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
-      fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
+      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -161,7 +165,7 @@ export default class HomeScreen extends React.Component {
           comanda_filtrada_abrir:[],
           showComandaPedido:false,
         })
-        alert('quantidade estoque insuficiente. Restam apenas '+data.quantidade)
+        alert('quantidade estoque insuficiente. Restam apenas ')
         ;
       } else {
         const { comand, pedido,nomeSelecionado, quantidade, extra,username,nome,selecionados} = this.state;
@@ -218,7 +222,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, quantidade} = this.state;
-    fetch('http://192.168.15.16:5000/verificar_quantidade', {  // Endpoint correto
+    fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -317,7 +321,7 @@ export default class HomeScreen extends React.Component {
 
                   return (
                     <View key={index}>
-                      <Text>{categoria}</Text> {/* Categoria exibida */}
+                      <Text>{categoria}</Text> 
 
                       {itens.map((item, itemIndex) => {
                         // Verifica se o item foi selecionado
@@ -354,10 +358,10 @@ export default class HomeScreen extends React.Component {
                               });
                             }}
                           >
-                            {/* Texto do item */}
+                           
                             <Text style={{ flex: 1 }}>{item}</Text>
 
-                            {/* Bola de confirmação */}
+                            
                             <View
                               style={{
                                 width: 20,
@@ -400,7 +404,7 @@ export default class HomeScreen extends React.Component {
                     style={[styles.container, {alignItems: 'center', padding: 8}]} 
                     onPress={() => this.selecionarPedido(item)}
                   >
-                    <Text style={{fontSize: 20}}>{item}</Text> {/* Correção: Texto está dentro de <Text> */}
+                    <Text style={{fontSize: 20}}>{item}</Text> 
                   </TouchableOpacity>
                 ))
               )}

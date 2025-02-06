@@ -26,7 +26,7 @@ export default class ChoseUser extends React.Component {
     const { user } = this.context;
     this.setState({ refreshing: true });
     
-    fetch('http://192.168.15.16:5000/users', {
+    fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ export default class ChoseUser extends React.Component {
   };
 
   Liberar = (id, numero) => {
-    fetch('http://192.168.15.16:5000/permitir', {
+    fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/permitir', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -24,7 +24,7 @@ export default class PedidosScreen extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true });
-    this.socket = io('http://192.168.15.16:5000');
+    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
     this.socket.on('initial_data', (dados) => {
       if (dados.dados_pedido) {
         const arrayInvertido = dados.dados_pedido.reverse(); // Reverte a ordem dos pedidos
@@ -81,7 +81,7 @@ export default class PedidosScreen extends React.Component {
           }
         />
 
-        {/* Modal */}
+       
         <Modal
           animationType="slide"
           transparent={true}
@@ -90,7 +90,7 @@ export default class PedidosScreen extends React.Component {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {/* Botões de Edição */}
+              
               {this.state.editable ? (
                 <TouchableOpacity
                   style={[styles.EitButton, { backgroundColor: 'green' }]}
@@ -107,7 +107,7 @@ export default class PedidosScreen extends React.Component {
                 </TouchableOpacity>
               )}
 
-              {/* Campos de Edição */}
+             
               {['comanda', 'pedido', 'quantidade', 'extra', 'preco'].map((campo) => (
                 <View key={campo} style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Text>{campo}: </Text>
@@ -121,7 +121,7 @@ export default class PedidosScreen extends React.Component {
                 </View>
               ))}
 
-              {/* Botão para Fechar o Modal */}
+           
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => this.setState({ showModal: false, editable: false })}
