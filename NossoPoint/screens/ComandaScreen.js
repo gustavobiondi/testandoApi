@@ -1,6 +1,5 @@
 import React from 'react';
 import { FlatList,ScrollView, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView} from 'react-native';
-
 import io from 'socket.io-client';
 import { getCurrentTime } from './HomeScreen';
 
@@ -37,7 +36,7 @@ class ComandaScreen extends React.Component {
     console.log(this.state.fcomanda)
    
 
-    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
+    this.socket = io('https://flask-backend-server-yxom.onrender.com');
 
 
     // Adicionar novo pedido ou atualizar a quantidade e preço do existente
@@ -159,9 +158,12 @@ class ComandaScreen extends React.Component {
   };
 
   changeBrinde = (pedido) => {
+    if (!pedido){
+      this.setState({brindeFiltrado:[]})
+    }
     this.setState({ Brinde:pedido});
     if (pedido) {
-      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/changeBrinde',{
+      fetch('https://flask-backend-server-yxom.onrender.com/changeBrinde',{
         method:'POST',
         headers:{
           'Content-Type': 'application/json'
@@ -212,7 +214,7 @@ class ComandaScreen extends React.Component {
       this.setState({
         ordem:ordem-1
       })
-      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/pegar_pedidos', {
+      fetch('https://flask-backend-server-yxom.onrender.com/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -236,7 +238,7 @@ class ComandaScreen extends React.Component {
       this.setState({
         ordem:ordem+1
       })
-      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/pegar_pedidos', {
+      fetch('https://flask-backend-server-yxom.onrender.com/pegar_pedidos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -348,22 +350,18 @@ class ComandaScreen extends React.Component {
             </View>
   
             <View >
-              <View>
-            {!this.state.ShowBrinde ? (
-              <View>
               <View style={styles.buttonRow}>
-              <Button title='Tudo Pago' onPress={this.apagarComanda} />
+              <Button title='Tudo Pago' onPress={this.apagarComanda}/>
 
               {!this.state.showDez ? (
                 <Button title='10%' onPress={() => this.setState(prevState => ({ preco: Math.floor(prevState.preco * 1.1), showDez: prevState.preco }))} />
               ) : (
                 <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
               )}
-                </View>
-                <Button title='Adicionar Brinde' color={'green'} onPress={() => this.setState({ ShowBrinde: true })} />
-                </View>
+              {!this.state.ShowBrinde ?(
+                <Button title='Adicionar Brinde' color={'green'} onPress={() => this.setState({ ShowBrinde: true }) }/>
               ):(
-
+              <View>
                 <View >
                   <View style={styles.buttonRow}>
                   <TextInput
@@ -379,6 +377,7 @@ class ComandaScreen extends React.Component {
                       <Text style={styles.brindeText}>{item}</Text>
                     </TouchableOpacity>
                   ))}
+                </View>
                 </View>
               )}
             </View>
@@ -472,7 +471,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    padding: 10,
+    paddingRight:'10px',
+    paddingLeft:'10px',
+    paddingTop:'10px',
+    paddingBottom:'10px'
   },
   brindeContainer: {
     alignItems: 'center',

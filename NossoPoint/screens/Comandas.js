@@ -18,7 +18,7 @@ export default class VerComandas extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
+    this.socket = io('https://flask-backend-server-yxom.onrender.com');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {

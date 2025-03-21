@@ -22,7 +22,7 @@ export default class EstoqueGeral extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true }); // Inicia o refresh
-    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
+    this.socket = io('https://flask-backend-server-yxom.onrender.com');
     
 
     this.socket.on('initial_data', (data) => {

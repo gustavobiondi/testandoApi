@@ -2,6 +2,7 @@ import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 
+
 export default class Cozinha extends React.Component {
   constructor(props) {
     super(props);
@@ -20,7 +21,7 @@ export default class Cozinha extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true });
-    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
+    this.socket = io('https://flask-backend-server-yxom.onrender.com');
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {

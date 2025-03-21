@@ -26,7 +26,7 @@ export default class ChoseUser extends React.Component {
     const { user } = this.context;
     this.setState({ refreshing: true });
     
-    fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/users', {
+    fetch('https://flask-backend-server-yxom.onrender.com/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ export default class ChoseUser extends React.Component {
   };
 
   Liberar = (id, numero) => {
-    fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/permitir', {
+    fetch('https://flask-backend-server-yxom.onrender.com/permitir', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
