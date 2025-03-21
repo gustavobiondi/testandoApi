@@ -24,7 +24,7 @@ export default class PedidosScreen extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true });
-    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com');
+    this.socket = io('https://flask-backend-server-yxom.onrender.com');
     this.socket.on('initial_data', (dados) => {
       if (dados.dados_pedido) {
         const arrayInvertido = dados.dados_pedido.reverse(); // Reverte a ordem dos pedidos

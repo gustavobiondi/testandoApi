@@ -28,7 +28,7 @@ export default class Analytics extends React.Component {
   // Função para buscar o faturamento do backend
   fetchFaturamento = () => {
 
-    fetch("http://flask-server-dev.sa-east-1.elasticbeanstalk.com/faturamento", {
+    fetch("https://flask-backend-server-yxom.onrender.com/faturamento", {
       method: "GET",
     })
       .then((resp) => resp.json())

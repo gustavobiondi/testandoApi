@@ -191,7 +191,7 @@ def cadastro():
 @app.route('/changeBrinde', methods=['POST'])
 def change_brinde():
     datas = request.json
-    data = datas.get('pedido')
+    data = datas.get('pedido').lower()
     print(data)
     pedidos = db.execute('SELECT item FROM cardapio')
     pedidos_filtrados = []
@@ -424,8 +424,7 @@ def handle_atualizar_pedidos(data):
 
     db.execute("UPDATE pedidos SET comanda = ?, pedido = ?, quantidade = ?, extra = ?,preco = ? WHERE id = ?",
                p['comanda'], p['pedido'], p['quantidade'], p['extra'], p['preco'], p['id'])
-    dados_pedidos = db.execute('SELECT * FROM pedidos')
-    emit('initial_data', {'dados_pedido': dados_pedidos}, broadcast=True)
+    handle_connect()
 
 
 @socketio.on('desfazer_pagamento')

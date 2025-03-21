@@ -48,7 +48,7 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io('http://flask-server-dev.sa-east-1.elasticbeanstalk.com'); // Se o backend estiver na porta 5000
+    this.socket = io('https://flask-backend-server-yxom.onrender.com'); // Se o backend estiver na porta 5000
     this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
     this.socket.on('preco', (data) => this.setState({ preco: data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total}));
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
@@ -139,7 +139,7 @@ export default class HomeScreen extends React.Component {
       this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false,nome:'',nomeSelecionado:[],showComanda:false,opcoesSelecionadas:[],selecionados:[]});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
-      fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/verificar_quantidade', {  // Endpoint correto
+      fetch('https://flask-backend-server-yxom.onrender.com/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -165,10 +165,20 @@ export default class HomeScreen extends React.Component {
           comanda_filtrada_abrir:[],
           showComandaPedido:false,
         })
-        alert('quantidade estoque insuficiente. Restam apenas ')
+        const quantidade = data.quantidade
+        const quantidadeRestante = 'quantidade estoque insuficiente. Restam apenas '+String(quantidade)
+        alert(quantidadeRestante)
         ;
       } else {
         const { comand, pedido,nomeSelecionado, quantidade, extra,username,nome,selecionados} = this.state;
+        
+        const quantidadeR = data.quantidade
+        const novaQ = parseFloat(quantidadeR)-quantidade
+        if (novaQ){
+          const alerta = 'ATENCAO RESTAM APENAS '+String(novaQ)+'\nRECOMENDADO REPOR ESTOQUE!'
+          alert(alerta)
+        }
+
         const currentTime = this.getCurrentTime();
         this.socket.emit('insert_order', { 
           comanda: comand.toLowerCase(), 
@@ -182,6 +192,7 @@ export default class HomeScreen extends React.Component {
           username:username,
           opcoesSelecionadas:selecionados,
         });
+
         this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false,selecionados:[],options:[]});
       }
     })
@@ -222,7 +233,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, quantidade} = this.state;
-    fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/verificar_quantidade', {  // Endpoint correto
+    fetch('https://flask-backend-server-yxom.onrender.com/verificar_quantidade', {  // Endpoint correto
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -246,9 +257,19 @@ export default class HomeScreen extends React.Component {
             
 
             });
-            alert('Quantidade Insuficiente : apenas '+quantidadeEstoqueMensagem+'no Estoque')
+            const quantidade = data.quantidade
+            const quantidadeRestante = 'quantidade estoque insuficiente. Restam apenas '+String(quantidade)
+            alert(quantidadeRestante)
+
         } else {
             const { pedido, quantidade, extra, nome, selecionados} = this.state;
+            const quantidadeR = data.quantidade
+            const novaQ = parseFloat(quantidadeR)-quantidade
+            if (novaQ){
+              const alerta = 'ATENCAO RESTAM APENAS '+String(novaQ)+'\nRECOMENDADO REPOR ESTOQUE!'
+              alert(alerta)
+            }
+
             this.setState((prevState) => ({
                 pedidosSelecionados: [...prevState.pedidosSelecionados, pedido],
                 quantidadeSelecionada: [...prevState.quantidadeSelecionada, quantidade],

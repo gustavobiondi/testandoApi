@@ -22,7 +22,7 @@ export default class Cadastro extends React.Component{
             this.setState({senha2:''})
         }
         else{
-            fetch('http://flask-server-dev.sa-east-1.elasticbeanstalk.com/cadastrar',{
+            fetch('https://flask-backend-server-yxom.onrender.com/cadastrar',{
                 method:'POST',
                 headers:{
                     'Content-Type':'application/json'
