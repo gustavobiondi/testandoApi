@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button,RefreshControl,Modal,TouchableOpacity } from 'react-native';
 import io from 'socket.io-client';
+import { API_URL } from "./url";
 
 export default class BarmanScreen extends React.Component {
   constructor(props) {
@@ -20,7 +21,7 @@ export default class BarmanScreen extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('https://flask-backend-server-yxom.onrender.com');
+    this.socket = io(`${API_URL}`);
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {
@@ -142,7 +143,7 @@ export default class BarmanScreen extends React.Component {
             <View style={styles.modalContent}>
               <FlatList
               data={this.state.ingredientes}
-              keyExtractor={(item,index)=>index.toString}
+              keyExtractor={(item,index)=>index.toString()}
               renderItem={({item,index})=>(
                 <View style={{justifyContent:'center'}}>
                 <View style={{flexDirection:'row'}}>

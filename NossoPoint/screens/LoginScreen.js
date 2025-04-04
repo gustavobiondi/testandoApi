@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { View, Text, TextInput, Button, StyleSheet,KeyboardAvoidingView } from 'react-native';
 import { UserContext } from '../UserContext'; // Import the context
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from "./url";
 
 export default class Login extends React.Component {
   constructor(props) {
@@ -62,7 +63,7 @@ export default class Login extends React.Component {
 };
 
   mandarValores(username, senha) {
-    fetch('https://flask-backend-server-yxom.onrender.com/verificar_username', {
+    fetch(`${API_URL}/verificar_username`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

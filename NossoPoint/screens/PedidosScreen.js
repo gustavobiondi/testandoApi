@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, FlatList, Text, StyleSheet, TextInput, Modal, TouchableOpacity, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
+import { API_URL } from "./url";
 
 export default class PedidosScreen extends React.Component {
   constructor(props) {
@@ -24,7 +25,7 @@ export default class PedidosScreen extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true });
-    this.socket = io('https://flask-backend-server-yxom.onrender.com');
+    this.socket = io(`${API_URL}`);
     this.socket.on('initial_data', (dados) => {
       if (dados.dados_pedido) {
         const arrayInvertido = dados.dados_pedido.reverse(); // Reverte a ordem dos pedidos
