@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { FlatList, View, Text, RefreshControl, Button } from 'react-native';
 import { UserContext } from '../UserContext'; // Import the UserContext
+import { API_URL } from "./url";
 
 export default class ChoseUser extends React.Component {
   static contextType = UserContext;
@@ -26,7 +27,7 @@ export default class ChoseUser extends React.Component {
     const { user } = this.context;
     this.setState({ refreshing: true });
     
-    fetch('https://flask-backend-server-yxom.onrender.com/users', {
+    fetch(`${API_URL}/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,7 +48,7 @@ export default class ChoseUser extends React.Component {
   };
 
   Liberar = (id, numero) => {
-    fetch('https://flask-backend-server-yxom.onrender.com/permitir', {
+    fetch(`${API_URL}/permitir`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

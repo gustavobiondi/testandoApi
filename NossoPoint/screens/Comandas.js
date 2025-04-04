@@ -1,6 +1,7 @@
 import { View, TextInput, Button, FlatList, StyleSheet, TouchableOpacity, Text, ScrollView, RefreshControl } from 'react-native';
 import React from 'react';
 import io from 'socket.io-client';
+import { API_URL } from "./url";
 
 export default class VerComandas extends React.Component {
   constructor(props) {
@@ -18,7 +19,7 @@ export default class VerComandas extends React.Component {
   }
 
   componentDidMount() {
-    this.socket = io('https://flask-backend-server-yxom.onrender.com');
+    this.socket = io(`${API_URL}`);
 
     // Ouvir eventos de dados iniciais
     this.socket.on('initial_data', (dados) => {

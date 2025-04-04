@@ -3,7 +3,33 @@
     "name": "NossoPoint",
     "slug": "NossoPoint",
     "version": "1.0.0",
-    "main":"index.js",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "bundleIdentifier": "com.gbiondi.nossopoint",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.gbiondi.nossopoint",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
     "extra": {
       "eas": {
         "projectId": "eb1e1907-f32a-4596-a5a8-6bafabd1227f"

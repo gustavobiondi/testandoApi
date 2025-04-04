@@ -1,5 +1,6 @@
 import React from "react";
 import { KeyboardAvoidingView,View,Text,TextInput,Button,StyleSheet} from "react-native";
+import { API_URL } from "./url";
 
 export default class Cadastro extends React.Component{
     constructor(props){
@@ -22,7 +23,7 @@ export default class Cadastro extends React.Component{
             this.setState({senha2:''})
         }
         else{
-            fetch('https://flask-backend-server-yxom.onrender.com/cadastrar',{
+            fetch(`${API_URL}/cadastrar`,{
                 method:'POST',
                 headers:{
                     'Content-Type':'application/json'

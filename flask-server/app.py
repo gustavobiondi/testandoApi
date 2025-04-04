@@ -6,11 +6,10 @@ from datetime import datetime
 import pytz
 import os
 
-
 # Inicialização do app Flask e SocketIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'seu_segredo_aqui'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*")
 db = SQL('sqlite:///dados.db')
 CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
 
@@ -18,6 +17,37 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
 @app.route("/")
 def home():
     return "Aplicação funcionando!", 200
+
+
+@app.route('/opcoes', methods=['POST'])
+def opc():
+    print('entrou no opcoes')
+    data = request.get_json()
+    item = data.get('pedido')
+    print(item)
+    opcoes = db.execute('SELECT opcoes FROM cardapio WHERE item = ?', item)
+    if opcoes:
+        palavra = ''
+        selecionaveis = []
+        dados = []
+        for i in opcoes[0]['opcoes']:
+            if i == '(':
+                nome_selecionavel = palavra
+                print(nome_selecionavel)
+                palavra = ''
+            elif i == '-':
+                selecionaveis.append(palavra)
+                palavra = ''
+            elif i == ')':
+                selecionaveis.append(palavra)
+                dados.append({nome_selecionavel: selecionaveis})
+                selecionaveis = []
+                palavra = ''
+            else:
+                palavra += i
+        print(dados)
+        return {'options': dados}
+
 
 @app.route('/pegar_pedidos', methods=['POST'])
 def pegar_pedidos():
@@ -78,22 +108,6 @@ def pegar_pedidos():
     return {'data': '', 'preco': ''}
 
 
-@app.route('/faturamento', methods=['GET'])
-def faturamento():
-    dia = datetime.now().date()
- # Obter a data atual
-
-    # Executar a consulta e pegar o resultado
-    faturamento = db.execute(
-        'SELECT faturamento FROM pagamentos WHERE dia = ?', dia)
-    dia_formatado = dia.strftime('%d/%m')
-
-    if faturamento:  # Verifica se há algum resultado
-        # Pega o valor do faturamento do primeiro resultado
-        return jsonify({'dia': str(dia_formatado), 'faturamento': faturamento[0]['faturamento']})
-    else:
-        # Se não houver faturamento
-        return jsonify({'dia': str(dia_formatado), 'faturamento': 0})
 
 
 @app.route('/permitir', methods=['POST'])
@@ -377,7 +391,8 @@ def handle_insert_order(data):
                         if chave in item:
                             valor_inserido = float(
                                 item[chave]) * float(quantidade)
-                            print(f'Inserindo valor {valor_inserido} no pedido {pedido}')
+                            print(
+                                f'Inserindo valor {valor_inserido} no pedido {pedido}')
                             db.execute('INSERT INTO pedidos(comanda, pedido, quantidade,preco,categoria,inicio,estado,extra,username,ordem,nome) VALUES (?, ?, ?,?,?,?,?,?,?,?,?)',
                                        comanda, pedido, float(quantidade), (float(preco_unitario[0]['preco'])*float(quantidade))+valor_inserido, categoria, horario, 'A Fazer', extra[i], username, 0, nomes[i])
                             estava = 'b'
@@ -413,6 +428,80 @@ def handle_insert_order(data):
         emit('error', {'message': str(e)})
 
 
+@socketio.on('faturamento')
+def faturamento():
+    dia = datetime.now().date()
+ # Obter a data atual
+
+    # Executar a consulta e pegar o resultado
+    faturament = db.execute(
+        'SELECT faturamento FROM pagamentos WHERE dia = ?', dia)
+    faturamento = faturament[0]['faturamento'] if faturament else '0' 
+    dia_formatado = dia.strftime('%d/%m')
+
+    faturamento_prev = db.execute(
+        "SELECT SUM (preco*quantidade) AS valor_previsto FROM pedidos")
+    faturamento_previsto = faturamento_prev[0]['valor_previsto'] if faturamento_prev[0]['valor_previsto'] else '0'
+    drinks = db.execute(
+        "SELECT SUM(quantidade) AS totaldrink FROM pedidos WHERE categoria =?", 2)
+    
+    drink = drinks[0]['totaldrink'] if drinks[0]['totaldrink'] else '0'
+
+
+    print(f'faturamento = {faturamento}')
+    print(faturamento_previsto)
+    print(f"drinks: {drink}")
+    porcaos = db.execute(
+        "SELECT SUM(quantidade) AS totalporcao FROM pedidos WHERE categoria =?", 3)
+    porcao = porcaos[0]["totalporcao"] if porcaos[0]["totalporcao"] else 0
+    Restantes = db.execute(
+        "SELECT SUM(quantidade) AS restantes FROM pedidos WHERE categoria = ?", 1)
+    restante = Restantes[0]["restantes"] if Restantes[0]["restantes"] else 0
+    pedidostotais = db.execute(
+        "SELECT SUM(quantidade) AS pedidostotais FROM pedidos")
+    pedidos = pedidostotais[0]["pedidostotais"] if pedidostotais[0]["pedidostotais"] else '0'
+    print(drink)
+    print(type)
+    if pedidostotais:
+        print('entrou')
+        porcentagem_drink = int(drink)*100/int(pedidos) if drinks[0]['totaldrink'] else '0'
+        porcentagem_porcao = int(porcao)*100/int(pedidos) if porcaos[0]["totalporcao"] else '0'
+        porcentagem_restante = int(restante)*100/int(pedidos) if Restantes[0]["restantes"] else '0'
+    
+
+    emit('faturamento_enviar',{'dia': str(dia_formatado),
+                        'faturamento': faturamento,
+                        'faturamento_previsto': faturamento_previsto,
+                        'drink': drink, 'porcao': porcao,
+                        "restante": restante,
+                        "pedidos": pedidos,
+                        "porcentagem drink":porcentagem_drink,
+                        "porcentagem_porcao":porcentagem_porcao,
+                        "porcentagem_restante":porcentagem_restante,},
+                        broadcast=True,
+                        )
+
+@socketio.on('atualizar_dia')
+def atualizar_dia(data):
+    dia = data['dia']
+
+    # Verifica se o dia já existe no banco
+    existe = db.execute("SELECT * FROM faturamento_diario WHERE dia = ?", dia)
+
+    if not existe:
+        db.execute("""
+            INSERT INTO faturamento_diario (dia, faturamento, faturamento_previsto, total_pedidos, total_drinks, total_porcoes, total_restantes)
+            VALUES (?, 0, 0, 0, 0, 0, 0)
+        """, dia)
+        db.commit()
+        print(f"Novo dia {dia} inserido no banco de dados.")
+
+    emit("dia_atualizado", {"mensagem": f"Dia {dia} atualizado!"}, broadcast=True)
+
+
+
+
+
 @socketio.on('atualizar_pedidos')
 def handle_atualizar_pedidos(data):
     p = data.get('pedidoAlterado')
@@ -431,18 +520,25 @@ def handle_atualizar_pedidos(data):
 def desfazer_pagamento(data):
     comanda = data.get('comanda')
     print(comanda)
+    prec = db.execute('SELECT SUM(preco) AS total FROM pedidos WHERE comanda = ? AND ordem = ?',comanda,1)
 
     db.execute(
         'UPDATE pedidos SET ordem = ordem-? WHERE comanda = ? AND ordem>?', 1, comanda, 0)
     db.execute(
         'UPDATE valores_pagos SET ordem = ordem - ? WHERE comanda = ?', 1, comanda)
-    preco = data.get('preco')
-    print(preco)
-    dia = datetime.now().date()
-    db.execute(
+    
+    print(prec)
+    if prec[0]['total']:
+        preco = float(prec[0]['total'])
+        valor = db.execute("SELECT valor_pago FROM valores_pagos WHERE ordem = ? AND comanda = ?",0,comanda)
+        if valor:
+            preco -= float(valor[0]['valor_pago'])
+        dia = datetime.now().date()
+        db.execute(
         'UPDATE pagamentos SET faturamento = faturamento - ? WHERE dia = ?', float(preco), dia)
-    
-    
+        print(f'preco DESFAZER PAGAMNTO : {preco}')
+
+        faturamento()
     handle_get_cardapio(comanda)
 
 
@@ -595,33 +691,6 @@ def pesquisa(data):
         emit('pedidos', pedidos_filtrados)
 
 
-@socketio.on('opcoes')
-def opcoes(data):
-    item = data.get('pedido')
-    opcoes = db.execute('SELECT opcoes FROM cardapio WHERE item = ?', item)
-    if opcoes:
-        palavra = ''
-        selecionaveis = []
-        dados = []
-        for i in opcoes[0]['opcoes']:
-            if i == '(':
-                nome_selecionavel = palavra
-                print(nome_selecionavel)
-                palavra = ''
-            elif i == '-':
-                selecionaveis.append(palavra)
-                palavra = ''
-            elif i == ')':
-                selecionaveis.append(palavra)
-                dados.append({nome_selecionavel: selecionaveis})
-                selecionaveis = []
-                palavra = ''
-            else:
-                palavra += i
-        print(dados)
-        socketio.emit('ativar_opcoes', {'options': dados})
-
-
 @socketio.on('get_ingredientes')
 def get_ingredientes(data):
     item = data.get('ingrediente')
@@ -653,7 +722,8 @@ def get_ingredientes(data):
 def inserir_preparo(data):
     id = data.get('id')
     estado = data.get('estado')
-    horario = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime('%H:%M')
+    horario = datetime.now(pytz.timezone(
+        "America/Sao_Paulo")).strftime('%H:%M')
 
     if estado == 'Pronto':
         db.execute('UPDATE pedidos SET fim = ? WHERE id = ?', horario, id)
@@ -849,4 +919,3 @@ def handle_get_cardapio(data):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
     socketio.run(app, host='0.0.0.0', port=port)
-

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button, TextInput, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
+import { API_URL } from "./url";
 
 export default class EstoqueScreen extends React.Component {
   constructor(props) {
@@ -22,7 +23,7 @@ export default class EstoqueScreen extends React.Component {
 
   refreshData() {
     this.setState({ refreshing: true }); // Inicia o refresh
-    this.socket = io('https://flask-backend-server-yxom.onrender.com');
+    this.socket = io(`${API_URL}`);
     
 
     this.socket.on('initial_data', (data) => {
