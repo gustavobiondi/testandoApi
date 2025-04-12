@@ -1,7 +1,6 @@
 import React from 'react';
-import { FlatList,ScrollView, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView} from 'react-native';
+import { FlatList,ScrollView,Modal, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView, Pressable} from 'react-native';
 import io from 'socket.io-client';
-import { getCurrentTime } from './HomeScreen';
 import { API_URL } from "./url";
 
 
@@ -20,15 +19,21 @@ class ComandaScreen extends React.Component {
       preco_total,
       preco_pago,
       ordem,
-      valor_pago: '', // Valor inicial vazio para garantir um controle adequado
+      valor_pago: '',
+      valor_pago_antigo:'', // Valor inicial vazio para garantir um controle adequado
       guardarValores:[],
       showBotoes:false,
       showDez:null,
       Brinde:'',
-      ShowBrinde:false,
+      showBrinde:true,
       nomes,
+      showAlterarValor:false,
+      alterarValorCategoria:'',
+      alterarValor:'',
       brindeFiltrado:[],
       itensAlterados:[],
+      show_mais:false,
+      opcoes:['Editar','Caixinha','Desconto','Brinde'],
     };
   }
 
@@ -81,32 +86,49 @@ class ComandaScreen extends React.Component {
 
   apagarComanda = () => {
     
-    const { fcomanda,preco } = this.state;
-    this.socket.emit('delete_comanda', { fcomanda: fcomanda, valor_pago:preco });
-    this.socket.emit('faturamento')
+    const { fcomanda,preco,showDez } = this.state;
+    
+    if (showDez){
+      console.log("caixinha", parseFloat(preco)-parseFloat(showDez))
+      this.socket.emit('delete_comanda', { fcomanda: fcomanda, valor_pago:parseFloat(showDez),caixinha:parseFloat(preco)-parseFloat(showDez) });
+      
+    }
+    else{
+    this.socket.emit('delete_comanda', { fcomanda: fcomanda, valor_pago:preco,caixinha:null }); 
+    }
     this.setState({showDez:false,nomes:[]})
     
   }
 
   changeValor = (valor_pago) => {
-    this.setState({ valor_pago });
+    if(this.state.showDez){
+      this.setState({preco:this.state.showDez,showDez:null})
+    }
+    this.setState({valor_pago})
   }
-
   pagarParcial = () => {
-    const { valor_pago, fcomanda, preco } = this.state;
-    const valorNum = parseFloat(valor_pago);
+    const { valor_pago, fcomanda, preco,showDez,valor_pago_antigo } = this.state;
+
+    if(valor_pago){
+      let valorNum = parseFloat(valor_pago);
+    if(showDez){
+      valorNum = parseFloat(valor_pago_antigo);
+    }
     console.log('entrou pagar parcial')
     if (!isNaN(valorNum) && valorNum > 0 && valorNum <= preco) {
       console.log('entrou no if')
       this.socket.emit('faturamento')
-      this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda: fcomanda });
+      this.socket.emit('pagar_parcial', { valor_pago: valorNum, fcomanda: fcomanda,caixinha:parseFloat(valor_pago)-parseFloat(valor_pago_antigo) });
       this.setState((prevState) => ({
         preco: prevState.preco - valorNum,
-        valor_pago: ''
+        valor_pago: '',
+        showDez:null,
       }));
     } else {
-      console.warn('Insira um valor válido para pagamento parcial.');
+      alert('Insira um valor válido para pagamento parcial.');
     }
+  }
+  else alert('Insira um valor válido para pagamento parcial.');
   }
 
   aparecerBotoes = () =>{
@@ -262,6 +284,7 @@ class ComandaScreen extends React.Component {
 
   desfazerPagamento =() =>{
         this.socket.emit('desfazer_pagamento',{comanda:this.state.fcomanda,preco:this.state.preco,ordem:this.state.ordem})
+        this.setState({ordem:0})
   }
 
   dataComnpleto = () =>{
@@ -273,252 +296,421 @@ class ComandaScreen extends React.Component {
       data: this.state.dataGeral.filter(item=>item.nome===nome)
     })
   }
+  dezporcento = () =>{
+    if (this.state.valor_pago){
+      this.setState(prevState => ({valor_pago:String(Math.floor(parseFloat(prevState.valor_pago)*1.1)),valor_pago_antigo:prevState.valor_pago}))
+    }
+    this.setState(prevState => ({ preco: Math.floor(prevState.preco * 1.1), showDez: prevState.preco }))
+  }
+  confirmarValor = () =>{
+    const {alterarValor,alterarValorCategoria,fcomanda} = this.state
+    this.socket.emit('alterarValor',{valor:alterarValor,categoria:alterarValorCategoria,comanda:fcomanda})
+    this.setState({showAlterarValor:false,alterarValor:'',alterarValorCategoria:''})
 
+  }
+  
+  
+  selecionarOpcao = (item) =>{ 
+    this.setState({show_mais:false})
+    if (item==="Editar")
+      this.aparecerBotoes()
+       
+    else if(item==="Desconto" || item==="Caixinha") 
+      this.setState({alterarValorCategoria:item,showAlterarValor:true})
+      
+    else{
+      this.setState({ showBrinde: false })
+    }
 
-  render() {
-    return (
-      <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Text>Comanda {this.state.fcomanda}</Text>
-          <Button title='<' onPress={() => this.atualizarOrdem('+', this.state.ordem)} />
-          <Text>{this.state.ordem}</Text>
-          <Button title='>' onPress={() => this.atualizarOrdem('-', this.state.ordem)} />
-          {!this.state.showBotoes ? (
-            <Button title='editar' onPress={this.aparecerBotoes} />
-          ) : (
-            <View style={styles.tableRow}>
-              <Button title='Cancelar' color={'red'} onPress={this.cancelar} />
-              <Button title='Confirmar' onPress={this.confirmar} />
-            </View>
-          )}
-        </View>
+  }
+  mostrarOpcoes = () =>{
+    this.setState({show_mais:true,showBrinde:true,showAlterarValor:false})
+  }
+    renderOpcoesModal() {
+      const { show_mais, opcoes } = this.state;
+      if (!show_mais) return null;
+      return (
+        <Modal 
+          transparent={true}
+          visible={show_mais}
+          animationType="fade"
+          onRequestClose={() => this.setState({ show_mais: false })}
+        >
 
-        {this.state.nomes.length > 0 && this.state.ordem === 0 && (
-          <View style={styles.nomeRow}>
-            <Button title="Geral" onPress={this.dataComnpleto} />
-            {this.state.nomes.map((item, index) => (
-              <View key={index} style={styles.nomeButtonWrapper}>
-                <Button title={item.nome} onPress={() => this.filtrarPorNome(item.nome)} />
+            <View style={styles.modalBox}>
+              <View style={styles.modalModalbox}>
+                <Pressable
+                  style={{ paddingLeft: 105 }}
+                  onPress={() => this.setState({ show_mais: false })}
+                >
+                  <Text>X</Text>
+                </Pressable>
+                {opcoes.map((item, index) => (
+                  <View key={index} style={{ flexDirection: 'row' }}>
+                    <Pressable
+                      onPress={() => this.selecionarOpcao(item)}
+                      style={styles.modalItem}
+                    >
+                      <Text style={{ fontSize: 18 }}>{item}</Text>
+                    </Pressable>
+                    {index === 0 && (
+                      <View style={{ paddingLeft: 10, justifyContent: 'flex-end' }}>
+                        {/* Espaço para conteúdo extra se necessário */}
+                      </View>
+                    )}
+                  </View>
+                ))}
               </View>
-            ))}
-            <Button title='Sem Nome' color={'orange'} onPress={() => this.filtrarPorNome('-1')} />
-          </View>
-        )}
-
-        <View style={styles.tableHeader}>
-          <Text style={styles.headerText}>Pedido</Text>
-          <Text style={styles.headerText}>Quant</Text>
-          <Text style={styles.headerText}>Valor</Text>
-        </View>
-
-        <ScrollView >
-          {this.state.data.length > 0 && this.state.data.map((item, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.itemText}>{item.pedido} {item.extra}</Text>
-              <Text style={styles.itemText}>{item.quantidade}</Text>
-              <Text style={styles.itemText}>{item.preco}</Text>
-              {this.state.showBotoes && (
-                <View style={styles.buttonRow}>
-                  <Button title='-' color={'red'} onPress={() => this.apagarPedidos(index)} />
-                  <Button title='+' onPress={() => this.adicionarPedidos(index)} />
-                </View>
-              )}
+            </View>
+        </Modal>
+      );
+    }
+  
+    // 2. Função para renderizar a linha de nomes (filtros)
+    renderNomesRow() {
+      const { nomes, ordem } = this.state;
+      if (nomes.length === 0 || ordem !== 0) return null;
+      return (
+        <View style={styles.nomeRow}>
+          <Button title="Geral" onPress={this.dataComnpleto} />
+          {nomes.map((item, index) => (
+            <View key={index} style={styles.nomeButtonWrapper}>
+              <Button title={item.nome} onPress={() => this.filtrarPorNome(item.nome)} />
             </View>
           ))}
-        </ScrollView>
-        
-        {this.state.ordem === 0 ? (
-          <View >
-          {!this.state.ShowBrinde ? (
-                  <Button title='Adicionar Brinde' color={'green'} onPress={() => this.setState({ ShowBrinde: true })} />
-                ) : (
-                  <View>
-                    <View style={styles.buttonBrindeRow}>
-                      <TextInput
-                        placeholder='Brinde'
-                        onChangeText={this.changeBrinde}
-                        value={this.state.Brinde}
-                        style={styles.input}
-                      />
-                      <Button title='OK' onPress={this.confirmarBrinde} />
-                    </View>
-                    {this.state.brindeFiltrado && this.state.brindeFiltrado.map((item, index) => (
-                      <TouchableOpacity key={index} style={styles.brindeContainer} onPress={() => this.selecionar(item)}>
-                        <Text style={styles.brindeText}>{item}</Text>
-                      </TouchableOpacity>
-                    ))}
+          <Button title="Sem Nome" color={'orange'} onPress={() => this.filtrarPorNome('-1')} />
+        </View>
+      );
+    }
+  
+    // 3. Função para renderizar a tabela de pedidos
+    renderTabelaPedidos() {
+      const { data, showBotoes } = this.state;
+      return (
+        <View>
+          {data.length > 0 &&
+            data.map((item, index) => (
+              <View key={index} style={styles.tableRow}>
+                <Text style={styles.itemText}>
+                  {item.pedido} {item.extra}
+                </Text>
+                <Text style={styles.itemText}>{item.quantidade}</Text>
+                <Text style={styles.itemText}>{item.preco}</Text>
+                {showBotoes && (
+                  <View style={styles.buttonRow}>
+                    <Button title="-" color={'red'} onPress={() => this.apagarPedidos(index)} />
+                    <Button title="+" onPress={() => this.adicionarPedidos(index)} />
                   </View>
                 )}
-          <View style={styles.summaryBox}>
-            <View style={styles.paymentRow}>
-              <View style={styles.paymentBlock}>
-                <Text style={styles.totalText}>Valor Pago</Text>
-                <Text style={styles.totalValue}>{this.state.preco_pago}</Text>
               </View>
-              <View style={styles.paymentBlock}>
-                <Text style={styles.totalText}>Valor a Pagar</Text>
-                <Text style={styles.totalValue}>{this.state.preco}</Text>
-              </View>
-              <View style={styles.paymentBlock}>
-                <Text style={styles.totalText}>Valor Total</Text>
-                <Text style={styles.totalValue}>{this.state.preco_total}</Text>
-              </View>
-            </View>
-
-            <View style={styles.actionsBox}>
-
-              <View style={styles.parcialRow}>
-                <TextInput
-                  placeholder="Quanto?"
-                  onChangeText={this.changeValor}
-                  value={this.state.valor_pago}
-                  keyboardType="numeric"
-                  style={styles.input}
-                />
-                <Button title='Pagar Parcial' onPress={this.pagarParcial} />
-              </View>
-            </View>
-            <View style={styles.buttonRow}>
-                <Button style={styles.tudopagostyle} title='Tudo Pago' onPress={this.apagarComanda} />
-                {!this.state.showDez ? (
-                  <Button style={styles.buttom10} title='10%' onPress={() => this.setState(prevState => ({ preco: Math.floor(prevState.preco * 1.1), showDez: prevState.preco }))} />
-                ) : (
-                  <Button title='X' color={'red'} onPress={() => this.setState(prevState => ({ preco: prevState.showDez, showDez: null }))} />
-                )}
-              </View>
-          </View>
-          </View>
-        ) : (
+            ))}
+        </View>
+      );
+    }
+  
+    // 4. Função para renderizar a área de resumo e pagamento
+    renderResumoPagamento() {
+      const {
+        ordem,
+        showBrinde, // agora com letra minúscula para consistência
+        Brinde,
+        brindeFiltrado,
+        preco_pago,
+        preco,
+        preco_total,
+        valor_pago,
+        showDez,
+        alterarValorCategoria,
+        alterarValor,
+        showAlterarValor,
+      } = this.state;
+      if (ordem !== 0) {
+        // Se ordem for diferente de 0, exibe a opção de desfazer pagamento ou uma mensagem
+        return (
           <View>
-            {this.state.ordem === 1 && this.state.data ? (
-              <Button title='Desfazer Pagamento' onPress={this.desfazerPagamento} />
+            {ordem === 1 && this.state.data ? (
+              <Button title="Desfazer Pagamento" onPress={this.desfazerPagamento} />
             ) : (
               <Text>não é possivel desfazer o pagamento</Text>
             )}
           </View>
+        );
+      }
+      return (
+        <View>
+          {showAlterarValor &&(
+            <View style={styles.buttonBrindeRow}>
+            <TextInput
+            keyboardType='numeric'
+            placeholder="Valor"
+            onChangeText={(alterarValor)=>this.setState({alterarValor})}
+            value={alterarValor}
+            style={styles.input}
+          />
+          <Button title="OK" onPress={this.confirmarValor} />
+          </View>
         )}
-      </View>
-    );
-  }
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  nomeRow: {
-    flexDirection: 'row',
-  },
-  nomeButtonWrapper: {
-    flexDirection: 'row',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    marginBottom: 10,
-    backgroundColor: '#f7f7f7',
-  },
-  headerText: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  itemText: {
-    flex: 1,
-    fontSize: 15,
-    textAlign: 'center',
-  },
-  summaryBox: {
-    marginTop: 15,
-    padding: 15,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 0,
-  },
-  paymentBlock: {
-    alignItems: 'center',
-  },
-  totalText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  totalValue: {
-    fontSize: 24,
-    marginVertical: 10,
-    textAlign: 'center',
-  },
-  actionsBox: {
-  },
-  parcialRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop:15,
-  },
-  input: {
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    marginVertical: 10,
-    width: '60%',
-    alignSelf: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom:30,
-    marginTop:25,
+          {!showBrinde && (
+            <View>
+              <View style={styles.buttonBrindeRow}>
+                <TextInput
+                  placeholder="Brinde"
+                  onChangeText={this.changeBrinde}
+                  value={Brinde}
+                  style={styles.input}
+                />
+                <Button title="OK" onPress={this.confirmarBrinde} />
+              </View>
+              {brindeFiltrado &&
+                brindeFiltrado.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.brindeContainer}
+                    onPress={() => this.selecionar(item)}
+                  >
+                    <Text style={styles.brindeText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          )}
+          <View style={styles.summaryBox}>
+            <View style={styles.paymentRow}>
+              <View style={styles.paymentBlock}>
+                <Text style={styles.totalText}>Valor Pago</Text>
+                <Text style={styles.totalValue}>{preco_pago}</Text>
+              </View>
+              <View style={styles.paymentBlock}>
+                <Text style={styles.totalText}>Valor a Pagar</Text>
+                <Text style={styles.totalValue}>{preco}</Text>
+              </View>
+              <View style={styles.paymentBlock}>
+                <Text style={styles.totalText}>Valor Total</Text>
+                <Text style={styles.totalValue}>{preco_total}</Text>
+              </View>
+            </View>
   
-  },
-  buttonbrindeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom:30,
-    marginTop:15,
-  },
-  tudopagostyle:{
-   width:80,
-   height:35, 
-  },
-  buttom10:{
-
-  },
-  brindeContainer: {
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 5,
-    borderRadius: 5,
-  },
-  brindeText: {
-    fontSize: 20,
-  },
-});
+            <View style={styles.actionsBox}>
+              <View style={styles.parcialRow}>
+                <TextInput
+                  placeholder="Quanto?"
+                  onChangeText={this.changeValor}
+                  value={valor_pago}
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+                <Button title="Pagar Parcial" onPress={this.pagarParcial} />
+              </View>
+            </View>
+            <View style={styles.buttonRow}>
+              <Button
+                style={styles.tudopagostyle}
+                title="Tudo Pago"
+                onPress={this.apagarComanda}
+              />
+              {!showDez ? (
+                <Button style={styles.buttom10} title="10%" onPress={this.dezporcento} />
+              ) : (
+                <Button
+                  title="X"
+                  color={'red'}
+                  onPress={() =>
+                    this.setState((prevState) => ({
+                      preco: prevState.showDez,
+                      showDez: null,
+                    }))
+                  }
+                />
+              )}
+            </View>
+          </View>
+        </View>
+      );
+    }
+  
+    // 5. Método render principal
+    render() {
+      const { fcomanda, ordem, showBotoes, show_mais } = this.state;
+      return (
+        <ScrollView style={styles.container}>
+          <View style={styles.headerRow}>
+            <Text>Comanda {fcomanda}</Text>
+            <Button title="<" onPress={() => this.atualizarOrdem('+', ordem)} />
+            <Text>{ordem}</Text>
+            <Button title=">" onPress={() => this.atualizarOrdem('-', ordem)} />
+  
+            {/* Renderiza botões ou modal de opções conforme o estado */}
+            {!showBotoes && (
+              <View>
+                {this.renderOpcoesModal()}
+                {!show_mais && (
+                  // Se show_mais for false, mostra o botão de "+" para abrir as opções
+                  <Button title="+" onPress={this.mostrarOpcoes} />
+                )}
+              </View>
+            )}
+  
+            {/* Caso showBotoes esteja true, exibe botões de Confirmar e Cancelar */}
+            {showBotoes && (
+              <View style={styles.tableRow}>
+                <Button title="Cancelar" color={'red'} onPress={this.cancelar} />
+                <Button title="Confirmar" onPress={this.confirmar} />
+              </View>
+            )}
+          </View>
+  
+          {this.renderNomesRow()}
+  
+          <View style={styles.tableHeader}>
+            <Text style={styles.headerText}>Pedido</Text>
+            <Text style={styles.headerText}>Quant</Text>
+            <Text style={styles.headerText}>Valor</Text>
+          </View>
+  
+          {this.renderTabelaPedidos()}
+  
+          {this.renderResumoPagamento()}
+        </ScrollView>
+      );
+    }
+  }
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#fff',
+      padding: 20,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalModalbox: {
+      width: 130,
+      borderWidth: 2,
+      borderTopLeftRadius: 3,
+      paddingEnd: 10,
+      alignItems: 'center',
+      backgroundColor: 'white',
+    },
+    modalBox: {
+      justifyContent:'flex-end',
+      alignItems:'flex-end',
+      padding: 17,
+      paddingTop:210,
+    },
+    modalItem: {
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+    },
+    nomeRow: {
+      flexDirection: 'row',
+      marginVertical: 10,
+    },
+    nomeButtonWrapper: {
+      marginHorizontal: 5,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: '#ddd',
+      marginBottom: 10,
+      backgroundColor: '#f7f7f7',
+    },
+    modalOpcoes: {
+      paddingLeft: 100,
+    },
+    headerText: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: '#ddd',
+    },
+    itemText: {
+      flex: 1,
+      fontSize: 15,
+      textAlign: 'center',
+    },
+    summaryBox: {
+      marginTop: 15,
+      padding: 15,
+      backgroundColor: '#f0f0f0',
+      borderRadius: 10,
+    },
+    paymentRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginBottom: 0,
+    },
+    paymentBlock: {
+      alignItems: 'center',
+    },
+    totalText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    totalValue: {
+      fontSize: 24,
+      marginVertical: 10,
+      textAlign: 'center',
+    },
+    actionsBox: {},
+    parcialRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 15,
+    },
+    input: {
+      height: 40,
+      borderColor: '#ddd',
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      borderRadius: 5,
+      marginVertical: 10,
+      width: '60%',
+      alignSelf: 'center',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 30,
+      marginTop: 25,
+    },
+    buttonBrindeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      marginBottom: 30,
+      marginTop: 15,
+    },
+    tudopagostyle: {
+      width: 80,
+      height: 35,
+    },
+    buttom10: {},
+    brindeContainer: {
+      alignItems: 'center',
+      padding: 8,
+      backgroundColor: '#e0e0e0',
+      marginVertical: 5,
+      borderRadius: 5,
+    },
+    brindeText: {
+      fontSize: 20,
+    },
+  });
+  
 export default ComandaScreen;
