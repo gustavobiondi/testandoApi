@@ -19,6 +19,7 @@ import Cadastro from './screens/CadastrarScreen.js';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import verComandas from './screens/Comandas.js';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import ScreenCardapio from './screens/Cardapio.js';
 
 
 const Drawer = createDrawerNavigator();
@@ -81,11 +82,13 @@ function AuthNavigator() {
             <Drawer.Screen name="Barman" component={BarmanScreen} />
             <Drawer.Screen name="Cozinha" component={Cozinha} />
             <Drawer.Screen name="Pedidos" component={PedidosScreen} />
+            <Drawer.Screen name="Cardapio" component={ScreenCardapio}/>
             <Drawer.Screen name="Estoque Carrinho" component={EstoqueScreen} />
             <Drawer.Screen name="Estoque Geral" component={EstoqueGeral} />
             <Drawer.Screen name="Analytics" component={Analytics} />
             <Drawer.Screen name="Users" component={ChoseUser} />
             <Drawer.Screen name="Cadastrar" component={Cadastro} />
+    
           </Drawer.Navigator>
         ) : (
           <Drawer.Navigator initialRouteName="Home">
@@ -93,6 +96,7 @@ function AuthNavigator() {
             <Drawer.Screen name="Barman" component={BarmanScreen} />
             <Drawer.Screen name="Cozinha" component={Cozinha} />
             <Drawer.Screen name="Pedidos" component={PedidosScreen} />
+            <Drawer.Screen name="Cardapio" component={ScreenCardapio}/>
             <Drawer.Screen name="Estoque" component={EstoqueScreen} />
           </Drawer.Navigator>
         )
