@@ -88,6 +88,9 @@ export default class ScreenCardapio extends React.Component {
         this.setState({cardapio:text,[data]:this.state.dataCardapio})
     }
   };
+  Enviar = () =>{
+    
+  }
 
   render() {
     const { dataCardapio, showMaisInfo, cardapio,data } = this.state;
@@ -133,8 +136,6 @@ export default class ScreenCardapio extends React.Component {
       }
       const opcoesCategoria = ['Restante', 'Bebida', 'Porção'];
       const opcoesModalidade = ['Coqueteleira', 'Montado', 'Liquidificador','Montado na taça','Montado no copo'];
-
-      let styleCor = 'padrao'
 
     return (
       <View style={{ flex: 1, padding: 10 }}>

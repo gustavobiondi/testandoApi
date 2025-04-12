@@ -1,12 +1,9 @@
 from cs50 import SQL
 db = SQL('sqlite:///dados.db')
 import re
+from datetime import datetime
+hoje = datetime.now().date()
 
-resultado = db.execute("SELECT instrucoes FROM cardapio")
-
-for i in resultado:
-    if i['instrucoes']:
-        match = re.search(r'Modalidade:\s*([^-]+)', i['instrucoes'])
-        if match:
-            print(match.group(1).strip())
-    
+db.execute("UPDATE pagamentos SET faturamento = 0 WHERE dia = ?", hoje)
+s = db.execute("SELECT * FROM pagamentos")
+print(s)
