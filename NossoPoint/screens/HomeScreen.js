@@ -111,7 +111,7 @@ export default class HomeScreen extends React.Component {
 
 
   changePedido = (pedido) => {
-    this.setState({ pedido, showPedido: !!pedido,selecionaveis:[],selecionados:[],options:[]});
+    this.setState({pedido,showPedido: !!pedido,selecionaveis:[],selecionados:[],options:[]});
     if (pedido) {
       this.socket.emit('pesquisa', pedido);
     }
@@ -125,6 +125,9 @@ export default class HomeScreen extends React.Component {
     console.log(nomeSelecionado)
     if(!comand){
       alert("Digite a comanda");
+    }
+    else if (!pedido && !pedidosSelecionados){
+      alert('Digite o pedido')
     }
     if (comand && pedidosSelecionados.length && quantidadeSelecionada.length) {
       
@@ -177,10 +180,10 @@ export default class HomeScreen extends React.Component {
         username:username,
         opcoesSelecionadas:opcoesSelecionadas,
       });
-      this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false,nome:'',nomeSelecionado:[],showComanda:false,opcoesSelecionadas:[],selecionados:[]});
+      this.setState({ comand: '', pedido: '',pedidosSelecionados: [],showPedidoSelecionado:false,showPedido:false,showComandaPedido:false, quantidadeSelecionada: [], extraSelecionados: [],comanda_filtrada:[],comanda_filtrada_abrir:[], quantidade: 1, showQuantidade: false, showPedidoSelecionado: false,nome:'',nomeSelecionado:[],showComanda:false,opcoesSelecionadas:[],selecionados:[]});
     } else if (comand && pedido && quantidade) {
       console.log('fetch')
-      fetch(`${API_URL}/verificar_quantidade`, {  // Endpoint correto
+      fetch(`${API_URL}/verificar_quantidade`, {  
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -202,6 +205,7 @@ export default class HomeScreen extends React.Component {
           quantidade: 1,
           showQuantidade: false,
           showPedidoSelecionado: false,
+          showPedido:false,
           comanda_filtrada:[],
           comanda_filtrada_abrir:[],
           showComandaPedido:false,
@@ -234,7 +238,7 @@ export default class HomeScreen extends React.Component {
           opcoesSelecionadas:selecionados,
         });
 
-        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false,selecionados:[],options:[]});
+        this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false,showPedidoSelecionado:false,showPedido:false,selecionados:[],options:[],showQuantidade:false});
       }
     })
     .catch(error => console.error('Erro ao adicionar pedido:', error));
@@ -291,6 +295,7 @@ export default class HomeScreen extends React.Component {
   
   adicionarPedido = () => {
     const {pedido, showQuantidade, quantidade} = this.state;
+
     if(showQuantidade){
     fetch(`${API_URL}/verificar_quantidade`, {  // Endpoint correto
         method: 'POST',
@@ -465,8 +470,7 @@ export default class HomeScreen extends React.Component {
 
             <View style={styles.actionRow}>
               <Button title="Adicionar" onPress={this.adicionarPedido} />
-              {((!this.state.showPedido && this.state.showPedidoSelecionado) ||
-                (!this.state.showPedidoSelecionado && this.state.showPedido)) && (
+              {(this.state.showPedidoSelecionado !== this.state.showPedido) && (
                 <Button title="Enviar pedido" onPress={this.sendData} />
               )}
             </View>

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, RefreshControl, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, StyleSheet,Image } from "react-native";
 import { UserContext } from "../UserContext";
 import { API_URL } from "./url";
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -22,32 +22,38 @@ export default class Analytics extends React.Component {
       porcao:"",
       pedidos:"",
       restante:"",
+      imagemBase64:null,
+      caixinha:"",
     };
     };
 
   componentDidMount() {
     this.socket = io(`${API_URL}`);
-    this.initializeData()
 
+    this.socket.on('faturamento_enviar', (data)=>{
+      if (data) {
+        this.setState({ faturamento: data.faturamento, dia: data.dia,faturamento_previsto:data.faturamento_previsto,drink:data.drink,porcao:data.porcao, restante:data.restante,pedidos:data.pedidos,imagemBase64:data.grafico,caixinha:data.caixinha})
+        console.log("tamanho", data.grafico.length);
+        console.log("caixinha", data.caixinha)
+      }}
+    )
+
+    this.initializeData()
+    
   }
   initializeData = ()=> {
     this.socket.emit('faturamento')
-    this.socket.on('faturamento_enviar', (data)=>{
-      if (data) {
-        this.setState({ faturamento: data.faturamento, dia: data.dia,faturamento_previsto:data.faturamento_previsto,drink:data.drink,porcao:data.porcao, restante:data.restante,pedidos:data.pedidos});
-      }}
-    )
   }
   
 
   // Função para buscar o faturamento do backend
   
   render() {
-    const { faturamento, dia, refreshing,faturamento_previsto,drink,porcao,pedidos,restante } = this.state;
+    const { faturamento, dia, refreshing,faturamento_previsto,drink,porcao,pedidos,restante,caixinha } = this.state;
   
     return (
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1}}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -62,23 +68,45 @@ export default class Analytics extends React.Component {
               <Text style={styles.dateText}>Dia {dia}</Text>
             </TouchableOpacity>
             <Text style={styles.valorText}>Faturamento = R$ {faturamento}</Text>
-            <Text style={styles.valorText}>Faturamento Previsto = {faturamento_previsto}</Text>
+            <Text style={styles.valorText}>Faturamento Previsto = R$ {faturamento_previsto}</Text>
             <Text style={styles.valorText}>Pedidos Totais = {pedidos}</Text>
+            <Text style={styles.valorText}>Caixinha 10% = R$ {caixinha}</Text>
             <Text style={styles.valorText}>Total de Drinks = {drink}</Text>
             <Text style={styles.valorText}>Total de porcoes = {porcao}</Text>
             <Text style={styles.valorText}>Pedidos Restantes = {restante}</Text>
-
+            
+            
 
 
           </View>
         </View>
+        <View style={styles.container}>
+          <View style={styles.dateBox}>
+          {this.state.imagemBase64 && (
+          <View style={{paddingEnd:20}}>
+            <Text style={{fontSize:20}}>Grafico Porcentagem Faturamento</Text>
+          <Image
+            source={{uri:`${API_URL}/static/grafico.png?${new Date().getTime()}`}} 
+            style={{ width: 350, height: 350,paddingEnd:20}}
+            resizeMode="contain"
+          />
+        </View>
+        )}
+            
+          </View>
+
+        </View>
+
+
       </ScrollView>
     );
   }
 }
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    paddingHorizontal:15,
+    paddingTop:20,
+    flexDirection:"column",
   },
   dateBox: {
     backgroundColor: '#f5f5f5',
