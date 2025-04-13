@@ -533,50 +533,15 @@ def faturamento():
     porcaos = db.execute(
         "SELECT SUM(quantidade) AS totalporcao, SUM(preco) AS preco_porcoes FROM pedidos WHERE categoria =?", 3)
     porcao = porcaos[0]["totalporcao"] if porcaos[0]["totalporcao"] else 0
-    preco_porcoes = porcaos[0]['preco_porcoes'] if porcaos[0]['preco_porcoes'] else 0
+    
     Restantes = db.execute(
         "SELECT SUM(quantidade) AS restantes,SUM(preco) as preco_restantes FROM pedidos WHERE categoria = ?", 1)
     restante = Restantes[0]["restantes"] if Restantes[0]["restantes"] else 0
-    preco_restantes = Restantes[0]["preco_restantes"] if Restantes[0]["preco_restantes"] else '0'
+    
     pedidostotais = db.execute(
         "SELECT SUM(quantidade) AS pedidostotais FROM pedidos")
     pedidos = pedidostotais[0]["pedidostotais"] if pedidostotais[0]["pedidostotais"] else '0'
 
-    data = {
-        "Tipo": [f"Drinks R${preco_drink}", f"Porcoes R${preco_porcoes}", f"Restantes R${preco_restantes}", f"Caixinha R${caixinha}"],
-        "Valor": [preco_drink, preco_porcoes, preco_restantes, caixinha]
-    }
-
-    df = pd.DataFrame(data)
-
-    fig, ax = plt.subplots()
-    cores = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
-    wedges, texts, autotexts = ax.pie(
-        df['Valor'],
-        labels=df['Tipo'],
-        autopct='%1.1f%%',
-        startangle=90,
-        colors=cores
-    )
-    # Muda só o tamanho dos labels (tipos)
-    for text in texts:
-        text.set_fontsize(18)  # rótulos (ex: "Drinks R$20")
-
-    # Muda só o tamanho dos valores (%)
-    for autotext in autotexts:
-        autotext.set_fontsize(13)  # porcentagens (ex: "25.0%")
-    ax.axis('equal')
-
-    buf = BytesIO()
-    filename = 'static/grafico.png'
-    plt.tight_layout()
-    plt.savefig(filename, format='png', dpi=300,
-                transparent=True, bbox_inches='tight',)
-    plt.close(fig)
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-
-    print("tamanho de imagem base64:", len(img_base64))
     print(f"caixinha = {caixinha}")
 
     emit('faturamento_enviar', {'dia': str(dia),
@@ -586,7 +551,6 @@ def faturamento():
                                 'porcao': porcao,
                                 "restante": restante,
                                 "pedidos": pedidos,
-                                "grafico": f'http://192.168.15.16:8000/static/grafico.png',
                                 "caixinha": caixinha,
                                 },
          broadcast=True,
