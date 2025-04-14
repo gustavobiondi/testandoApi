@@ -109,7 +109,7 @@ export default class EstoqueScreen extends React.Component {
   Enviar =()=>{
 const {AdicionarItem, AdicionarEstoqueIdeal,AdicionarQuantidade,titleEnv,AdicionarNovoNome}=this.state;
 if (AdicionarItem){
-this.socket.emit('EditingEstoque', {tipo:titleEnv,item:AdicionarItem,NovoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade, estoqueideal:AdicionarEstoqueIdeal,estoque:'estoque'});
+this.socket.emit('EditingEstoque', {tipo:titleEnv,item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade, estoqueideal:AdicionarEstoqueIdeal,estoque:'estoque'});
 this.setState({AdicionarItem:'',AdicionarNovoNome:'',AdicionarEstoqueIdeal:'',AdicionarQuantidade:''});
 }
 else alert("Item nao identificado")
