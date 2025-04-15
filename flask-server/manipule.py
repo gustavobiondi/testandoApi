@@ -3,4 +3,4 @@ from cs50 import SQL
 db = SQL('sqlite:///dados.db')
 dia = datetime.now().date()
 
-print(db.execute("SELECT * FROM cardapio WHERE item ='saquerita'"))
+db.execute("INSERT INTO pagamentos (dia,faturamento, faturamento_prev, drinks, porcoes, restantes, totais_pedidos,caixinha) VALUES (?,0, 0, 0, 0, 0, 0,0)", dia)
