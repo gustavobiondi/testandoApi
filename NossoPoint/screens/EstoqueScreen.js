@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList,TouchableOpacity,Modal, Text, StyleSheet, Button, TextInput, RefreshControl } from 'react-native';
+import { View, FlatList,TouchableOpacity,Modal,ScrollView,Text, StyleSheet, Button, TextInput, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 import { API_URL } from "./url";
 
@@ -8,6 +8,7 @@ export default class EstoqueScreen extends React.Component {
     super(props);
     this.state = {
       data: [],
+      dataGeralAlterar:[],
       dataGeral: [],
       showEditar: false,
       itensAlterados: [],
@@ -17,6 +18,7 @@ export default class EstoqueScreen extends React.Component {
       showInputsAdicionar:false,
       showInputEditar:false,
       showInputsRemover:false,
+      showDataFiltrado:false,
       AdicionarNovoNome:"",
       AdicionarItem:"",
       AdicionarQuantidade:"",
@@ -95,24 +97,41 @@ export default class EstoqueScreen extends React.Component {
     this.setState({ showEditar: false, itensAlterados: [] });
   };
 
-  searchEstoque = (estoque) => {
-    const normalizedEstoque = estoque.toLowerCase();
+  searchEstoque = (valor,data) => {
+    if(valor){
+    const normalizedEstoque = valor.toLowerCase();
     if (normalizedEstoque && this.state.dataGeral) {
       const dataFiltrado = this.state.dataGeral.filter((item) =>
         item.item.toLowerCase().startsWith(normalizedEstoque)
       );
-      this.setState({ estoque, data: dataFiltrado });
+      this.setState({ estoque:valor, [data]: dataFiltrado });
     } else {
-      this.setState({ estoque, data: this.state.dataGeral || [] });
+      this.setState({ estoque:valor, [data]: this.state.dataGeral || [] });
     }
-  };
+  }
+  else{
+    this.setState({estoque:valor,[data]:this.state.dataGeral})
+  }
+  }; 
   Enviar =()=>{
 const {AdicionarItem, AdicionarEstoqueIdeal,AdicionarQuantidade,titleEnv,AdicionarNovoNome}=this.state;
 if (AdicionarItem){
-this.socket.emit('EditingEstoque', {tipo:titleEnv,item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade, estoqueideal:AdicionarEstoqueIdeal,estoque:'estoque'});
+this.socket.emit('EditingEstoque', {tipo:titleEnv,item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade, estoqueIdeal:AdicionarEstoqueIdeal,estoque:'estoque'});
 this.setState({AdicionarItem:'',AdicionarNovoNome:'',AdicionarEstoqueIdeal:'',AdicionarQuantidade:''});
 }
 else alert("Item nao identificado")
+  }
+
+  filtrar= (dados) =>{
+  
+    this.setState(prevState=>({showDataFiltrado:!prevState.showDataFiltrado}))
+    if (dados ==='filtrar'){
+        const dataFiltrado = this.state.data.filter(item=>item.quantidade<item.estoque_ideal*0.5)
+        this.setState({data:dataFiltrado})
+    }
+    else{
+      this.setState({data:this.state.dataGeral})
+    }
   }
 
   render() {
@@ -123,6 +142,7 @@ else alert("Item nao identificado")
       showInputEditar,
       showInputsRemover,
       titleEnv,
+      estoque,
     } = this.state;
     let inputs=[];
     let titleEnviar='';
@@ -150,16 +170,20 @@ else alert("Item nao identificado")
       <View style={styles.container}>
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>ITEM</Text>
-          <TextInput
-            style={styles.inputEstoque}
-            onChangeText={this.searchEstoque}
-            value={this.state.estoque}
-          />
+           <TextInput
+                      style={styles.inputEstoque}
+                      onChangeText={(estoque)=>this.searchEstoque(estoque,'data')}
+                      value={estoque}
+                    />
           {!this.state.showEditar ? (
             <Button title="Editar" onPress={() => this.setState({ showEditar: true })} />
           ) : (
             <Button title="Confirmar" onPress={this.handleConfirmar} />
           )}
+          <Button
+                    title="🌪️"
+                   onPress={() => this.filtrar(this.state.showDataFiltrado ? 'desfiltrar' : 'filtrar')}
+                    />
         </View>
 
         <FlatList
@@ -179,9 +203,14 @@ else alert("Item nao identificado")
                   />
                   <Button title="+" onPress={() => this.aumentarQuantidade(index)} />
                 </View>
+                ) : (this.state.showDataFiltrado ? (
+                                <View style={{flexDirection:'row'}}>
+                                <Text style={styles.estoque_ideal}>{item.estoque_ideal}</Text>
+                                <Text style={[styles.quantidade,{color:'red'}]}>{item.quantidade}</Text>
+                                </View>
               ) : (
                 <Text style={styles.quantidade}>{item.quantidade}</Text>
-              )}
+    ))}
             </View>
           )}
           refreshControl={
@@ -244,22 +273,57 @@ else alert("Item nao identificado")
                     </View>
                   ) : (
                     <FlatList  
-                    data={inputs} 
-                      keyExtractor={(item) => item.key}
-                      renderItem={({ item }) => (
-                        <View style={styles.inputGroup}>
-                          <Text style={styles.inputLabel}>{item.label}</Text>
-                          <TextInput
-                            style={styles.inputSimples}
-                            placeholder={item.label}
-                            keyboardType={item.tipoTeclado}
-                            value={this.state[item.nome]}
-                            onChangeText={(text) => this.setState({ [item.nome]: text })}
-                          />
-                        </View>
-                      )}
-                      ListFooterComponent={<View style={{ height: 20 }} />}
-                    />
+                               data={inputs} 
+                                 keyExtractor={(item) => item.key}
+                                 renderItem={({ item }) => (
+                                   <View>
+                               {item.nome==='AdicionarItem'&&(showInputEditar||showInputsRemover)?(
+                                   <View style={styles.inputGroup}>
+                                     <Text style={styles.inputLabel}>{item.label}</Text> 
+                                     <TextInput
+                                       style={styles.inputSimples}
+                                       placeholder={item.label}
+                                       keyboardType={item.tipoTeclado}
+                                       value={this.state[item.nome]}
+                                       onChangeText={(text) => {
+                                         this.setState({ [item.nome]: text});
+                                         this.searchEstoque(text,'dataGeralAlterar')}}
+                                     />
+                                     {this.state.AdicionarItem && !this.state.AdicionarEstoqueIdeal &&(
+                                     <ScrollView style={{ maxHeight: 150 }}>
+                                     {this.state.dataGeralAlterar.map((item,i)=>(
+                                       <TouchableOpacity
+                                       Key={i}
+                                       style={{
+                                       padding: 8,
+                                       backgroundColor: '#eee',
+                                       borderBottomWidth: 1,
+                                       borderColor: '#ccc',
+                                       }}
+                                       onPress={()=>this.setState({AdicionarItem:item.item,AdicionarEstoqueIdeal:item.estoque_ideal})}
+                                       >
+                                       <Text>{item.item}</Text>
+                                       </TouchableOpacity>
+                                     ))}
+                                     </ScrollView>
+                             )}
+                                   </View>
+                              ):(
+                               <View style={styles.inputGroup}>
+                               <Text style={styles.inputLabel}>{item.label}</Text> 
+                               <TextInput
+                                 style={styles.inputSimples}
+                                 placeholder={item.label}
+                                 keyboardType={item.tipoTeclado}
+                                 value={this.state[item.nome]}
+                                 onChangeText={(text) =>this.setState({ [item.nome]: text})}
+                               />
+                             </View>
+                              )}
+                                 </View>
+                                 )}
+                                 ListFooterComponent={<View style={{ height: 20 }} />}
+                               />
                   )}
                   {(showInputsAdicionar || showInputEditar || showInputsRemover) &&( 
                   <TouchableOpacity style={styles.botaoEnviar} onPress={()=>{this.setState({titleEnv:titleEnviar},()=>{

@@ -149,9 +149,11 @@ class ComandaScreen extends React.Component {
       itemAtualizado.preco = (parseFloat(itemAtualizado.preco)-preco_u).toString()
       itemAtualizado.quantidade = (parseInt(itemAtualizado.quantidade) - 1).toString();
       
-      dataAtualizada[index] = itemAtualizado; // Substitui o item no array
-      this.setState({ data: dataAtualizada });
-      this.atualizarItensAlterados(itemAtualizado);
+      if (itemAtualizado.quantidade>=0){
+        dataAtualizada[index] = itemAtualizado; // Substitui o item no array
+        this.setState({ data: dataAtualizada });
+        this.atualizarItensAlterados(itemAtualizado);
+      }
   };
 
   adicionarPedidos = (index) => {
@@ -298,9 +300,9 @@ class ComandaScreen extends React.Component {
   }
   dezporcento = () =>{
     if (this.state.valor_pago){
-      this.setState(prevState => ({valor_pago:String(Math.floor(parseFloat(prevState.valor_pago)*1.1)),valor_pago_antigo:prevState.valor_pago}))
+      this.setState(prevState => ({valor_pago:String(parseFloat(prevState.valor_pago)*1.1),valor_pago_antigo:prevState.valor_pago}))
     }
-    this.setState(prevState => ({ preco: Math.floor(prevState.preco * 1.1), showDez: prevState.preco }))
+    this.setState(prevState => ({ preco: prevState.preco * 1.1, showDez: prevState.preco }))
   }
   confirmarValor = () =>{
     const {alterarValor,alterarValorCategoria,fcomanda} = this.state
