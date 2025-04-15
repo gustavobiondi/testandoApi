@@ -185,38 +185,18 @@ def verif_quantidade():
 
     if categoria and categoria[0]['categoria_id'] != 2:
         verificar_estoque = db.execute(
-            'SELECT quantidade FROM estoque WHERE item = ?', item)
+            'SELECT quantidade,estoque_ideal FROM estoque WHERE item = ?', item)
 
         if verificar_estoque:
             estoque_atual = float(verificar_estoque[0]['quantidade'])
             if estoque_atual - float(quantidade) < 0:
                 return {'erro': 'Estoque insuficiente', 'quantidade': estoque_atual}
-            else:
-                return {'erro': False, 'quantidade': estoque_atual}
+            elif estoque_atual:
+                estoque_ideal = verificar_estoque[0]['estoque_ideal']
+                if estoque_ideal:
+                    if estoque_atual<estoque_ideal*0.5:
+                        return {'erro': False, 'quantidade': estoque_atual}
     return {'erro': False}
-
-
-@app.route('/verificar_quantidade_enviar', methods=['POST'])
-def verificar_quantidade():
-    data = request.json  # Use request.json para pegar o corpo da requisição
-    item = data.get('item')
-    quantidade = data.get('quantidade')
-    categoria = db.execute(
-        'SELECT categoria_id FROM cardapio WHERE item = ?', item)
-    if categoria[0]['categoria_id'] != 2:
-        verificar_estoque = db.execute(
-            'SELECT quantidade FROM estoque WHERE item = ?', item)
-
-        if verificar_estoque:
-            estoque_atual = float(verificar_estoque[0]['quantidade'])
-            if estoque_atual - float(quantidade) < 0:
-                return {'erro': True, 'quantidade': estoque_atual}
-            else:
-                return {'erro': False, 'quantidade': estoque_atual}
-    return {'erro': False}
-
-
-
 
 
 
@@ -279,7 +259,7 @@ def editEstoque(data):
     item = data.get('item')
     novoNome = data.get('novoNome')
     quantidade = data.get('quantidade')
-    estoque_ideal = data.get('estoqueIdeal')
+    estoque_ideal = float(data.get('estoqueIdeal')) if data.get('estoqueIdeal') else False
     estoque = data.get('estoque')
     print("item", tipo)
     print("item", item)
@@ -294,7 +274,8 @@ def editEstoque(data):
     elif tipo == 'Remover':
         db.execute(f"DELETE FROM {estoque} WHERE item=?",item)
     else:
-        if estoque_ideal:
+        
+        if estoque_ideal and novoNome:
             db.execute(f"UPDATE {estoque} SET item=?, estoque_ideal=? WHERE item=?",novoNome, estoque_ideal,item )
         elif not novoNome:
             db.execute(f"UPDATE {estoque} SET estoque_ideal=? WHERE item=?",estoque_ideal,item    )
@@ -1040,26 +1021,81 @@ def cadastro(data):
 def alterar_cardapio(data):
     categoria = data.get('categoria')
     item = data.get('item')
-    preco=data.get(preco)
-
-    
+    preco = data.get('preco')
+    tipo=data.get('tipo')
+    print('Entrou')
+    if tipo =='Remover':
+        db.execute("DELETE FROM cardapio WHERE item = ?",item)
     if categoria=='Bebida':
         Frutas = data.get('frutas')
         Modalidade = data.get('modalidade')
         Instrucoes = data.get('instrucao')
         categoria_id = 2
+        opcoes=''
+        instrucao = ''
+        if Frutas:
+            opcoes+='Frutas'+Frutas
+        if Modalidade:
+            instrucao+='Modalidade:'+Modalidade+'-'
+        if Instrucoes:
+            instrucao+=Instrucoes 
         if tipo=='Adicionar':
-            if Frutas:
-                opcoes+=Frutas
-            if Modalidade:
-                instru+='Tamanho'+tamanho
-            adicionais = data.get('adicionais')
-            if adicionais:
-                opcoes+= 'Adicionais'+adicionais 
-            if opcoes:
-               db.execute("INSERT INTO cardapio (item,preco,categoria_id,opcoes) VALUES (?,?,?,?)",item,preco,categoria_id,opcoes)
-            else: db.execute("INSERT INTO cardapio (item,preco,categoria_id) VALUES (?,?,?)",item,preco,categoria_id)     
-    
+            
+            if opcoes and instrucao:
+                db.execute("INSERT INTO cardapio (item,preco,categoria_id,opcoes,instrucoes) VALUES (?,?,?,?,?)",item,preco,categoria_id,opcoes,instrucao)
+            elif opcoes:
+                db.execute("INSERT INTO cardapio (item,preco,categoria_id,opcoes) VALUES (?,?,?,?)",item,preco,categoria_id,opcoes)
+            elif instrucao:
+                db.execute("INSERT INTO cardapio (item,preco,categoria_id,instrucoes) VALUES (?,?,?,?)",item,preco,categoria_id,instrucao)
+            else:
+                db.execute("INSERT INTO cardapio (item,preco,categoria_id) VALUES (?,?,?)",item,preco,categoria_id) 
+     
+        elif tipo=='Editar':
+            novoNome=data.get('novoNome')
+            if novoNome and opcoes and instrucao:
+                db.execute(
+                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ?, opcoes = ?, instrucoes = ? WHERE item = ?",
+                    novoNome, preco, categoria_id, opcoes, instrucao, item
+                )
+            elif novoNome and instrucao:
+                db.execute(
+                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ?, instrucoes = ? WHERE item = ?",
+                    novoNome, preco, categoria_id, instrucao, item
+                )
+            elif novoNome and opcoes:
+                db.execute(
+                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ?, opcoes = ? WHERE item = ?",
+                    novoNome, preco, categoria_id, opcoes, item
+                )
+            elif novoNome:
+                db.execute(
+                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ? WHERE item = ?",
+                    novoNome, preco, categoria_id, item
+                )
+            elif opcoes and instrucao:
+                db.execute(
+                    "UPDATE cardapio SET preco = ?, categoria_id = ?, opcoes = ?, instrucoes = ? WHERE item = ?",
+                    preco, categoria_id, opcoes, instrucao, item
+                )
+            elif opcoes:
+                db.execute(
+                    "UPDATE cardapio SET preco = ?, categoria_id = ?, opcoes = ? WHERE item = ?",
+                    preco, categoria_id, opcoes, item
+                )
+            elif instrucao:
+                db.execute(
+                    "UPDATE cardapio SET preco = ?, categoria_id = ?, instrucoes = ? WHERE item = ?",
+                    preco, categoria_id, instrucao, item
+                )
+            else:
+                db.execute(
+                    "UPDATE cardapio SET preco = ?, categoria_id = ? WHERE item = ?",
+                    preco, categoria_id, item
+                )
+
+            
+                
+
     elif categoria=='Porção':
         categoria_id = 3
         opcoes = ''
@@ -1091,7 +1127,15 @@ def alterar_cardapio(data):
                     adicionaisFormatado ='Adicionais'+data.get('adicionais')
                     if data.get('adicionais'):
                         opcoes+=adicionaisFormatado
-        else: db.execute("DELETE FROM cardapio WHERE item=?",item)
+            if novoNome and opcoes:
+                db.execute('UPDATE cardapio SET item = ?, opcoes = ?, categoria_id = ?, preco = ? WHERE item = ?',novoNome,opcoes,categoria_id,preco,item)
+            elif novoNome:
+                db.execute('UPDATE cardapio SET item = ?, categoria_id = ?, preco = ? WHERE item = ?',novoNome,categoria_id,preco,item)
+            elif opcoes:
+                db.execute('UPDATE cardapio SET opcoes = ?, categoria_id = ?, preco = ? WHERE item = ?',opcoes,categoria_id,preco,item)
+            else:
+                db.execute('UPDATE cardapio SET categoria_id = ?, preco = ? WHERE item = ?',categoria_id,preco,item)
+            
     else:
         categoria_id = 1
         if tipo=="Adicionar":
@@ -1099,16 +1143,11 @@ def alterar_cardapio(data):
         elif tipo=="Editar":
             novoNome=data.get('novoNome')
             if novoNome:
-                db.execute('UPDATE cardapio set item = ?,preco = ?,categoria_id = ?',novoNome,preco,categoria_id)
-            else: db.execute('UPDATE cardapio set preco = ?,categoria_id = ?',preco,categoria_id)
+                db.execute('UPDATE cardapio set item = ?,preco = ?,categoria_id = ? WHERE item = ?',novoNome,preco,categoria_id, item)
+            else: db.execute('UPDATE cardapio set preco = ?,categoria_id = ? WHERE item = ?',preco,categoria_id,item)
+    handle_connect()
     
-    tipo = data.get('tipo')
-    preco = data.get('preco')
-    if tipo =='Adicionar':
-        novoNome = data.get('novoNome')
-        if item:
-            i
-            
+
 
 
 if __name__ == '__main__':
