@@ -103,14 +103,22 @@ export default class HomeScreen extends React.Component {
   }
   
   changeComanda = (comand) => {
-    this.setState({ comand , showComandaPedido: !!comand})
-    if (comand){
-      this.socket.emit('pesquisa_comanda',{comanda:comand})
+    const comandaLower = String(comand).toLowerCase();
+  
+    this.setState({ 
+      comand: comandaLower, 
+      showComandaPedido: !!comand 
+    });
+  
+    if (comand) {
+      this.socket.emit('pesquisa_comanda', { comanda: comandaLower });
     }
   };
+  
 
 
-  changePedido = (pedido) => {
+  changePedido = (pedid) => {
+    const pedido = String(pedid).toLowerCase()
     this.setState({pedido,showPedido: !!pedido,selecionaveis:[],selecionados:[],options:[]});
     if (pedido) {
       this.socket.emit('pesquisa', pedido);
@@ -120,7 +128,9 @@ export default class HomeScreen extends React.Component {
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
   sendData = () => {
-    const { comand, nome,nomeSelecionado, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, pedido, quantidade, extra,opcoesSelecionadas, username,options,selecionados} = this.state;
+    const pedido = this.state.pedido.trim()
+    const comand = this.state.comand.trim()
+    const { nome,nomeSelecionado, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, quantidade, extra,opcoesSelecionadas, username,options,selecionados} = this.state;
     const currentTime = this.getCurrentTime();
     console.log(nomeSelecionado)
     if(!comand){
@@ -171,7 +181,7 @@ export default class HomeScreen extends React.Component {
       })
       
       this.socket.emit('insert_order', { 
-        comanda: comand.toLowerCase(), 
+        comanda: comand, 
         pedidosSelecionados:NovosPedidos, 
         quantidadeSelecionada:NovasQuantidades,
         extraSelecionados:NovosExtras,
@@ -215,7 +225,7 @@ export default class HomeScreen extends React.Component {
         alert(quantidadeRestante)
         ;
       } else {
-        const { comand, pedido,nomeSelecionado, quantidade, extra,username,nome,selecionados} = this.state;
+        const {nomeSelecionado, quantidade, extra,username,nome,selecionados} = this.state;
         
         const quantidadeR = data.quantidade
         const novaQ = parseFloat(quantidadeR)-quantidade
@@ -226,7 +236,7 @@ export default class HomeScreen extends React.Component {
 
         const currentTime = this.getCurrentTime();
         this.socket.emit('insert_order', { 
-          comanda: comand.toLowerCase(), 
+          comanda: comand, 
           pedidosSelecionados: [pedido], 
           quantidadeSelecionada: [quantidade],
           extraSelecionados: [extra],
@@ -294,8 +304,10 @@ export default class HomeScreen extends React.Component {
   mudar_quantidade = (quantidade) => this.setState({ quantidade: parseInt(quantidade) || 1 });
   
   adicionarPedido = () => {
-    const {pedido, showQuantidade, quantidade} = this.state;
+    const pedido = this.state.pedido.trim()
 
+    const {showQuantidade, quantidade} = this.state;
+    
     if(showQuantidade){
     fetch(`${API_URL}/verificar_quantidade`, {  // Endpoint correto
         method: 'POST',
