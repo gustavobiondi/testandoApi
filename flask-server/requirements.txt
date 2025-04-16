@@ -15,7 +15,6 @@ eventlet==0.39.0
 Flask==3.0.3
 Flask-Cors==4.0.1
 Flask-SocketIO==5.3.7
-greenlet==3.0.3
 h11==0.14.0
 idna==3.8
 apscheduler==3.11.0

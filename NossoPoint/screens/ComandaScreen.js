@@ -300,9 +300,9 @@ class ComandaScreen extends React.Component {
   }
   dezporcento = () =>{
     if (this.state.valor_pago){
-      this.setState(prevState => ({valor_pago:String(parseFloat(prevState.valor_pago)*1.1),valor_pago_antigo:prevState.valor_pago}))
+      this.setState(prevState => ({valor_pago:String((parseFloat(prevState.valor_pago)*1.1).toFixed(2)),valor_pago_antigo:prevState.valor_pago}))
     }
-    this.setState(prevState => ({ preco: prevState.preco * 1.1, showDez: prevState.preco }))
+    this.setState(prevState => ({ preco: (prevState.preco * 1.1).toFixed(2), showDez: prevState.preco }))
   }
   confirmarValor = () =>{
     const {alterarValor,alterarValorCategoria,fcomanda} = this.state

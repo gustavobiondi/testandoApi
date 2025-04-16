@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "NossoPoint",
-    "slug": "NossoPoint",
+    "slug": "testando-api",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -32,8 +32,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "eb1e1907-f32a-4596-a5a8-6bafabd1227f"
+        "projectId": "7e480f65-cc6b-476f-b57d-270e50206802"
       }
-    }
+    },
+    "owner": "gbiondinova"
   }
 }
