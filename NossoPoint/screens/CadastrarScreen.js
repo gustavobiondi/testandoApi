@@ -149,5 +149,9 @@ const styles = StyleSheet.create({
       color: 'black',
       backgroundColor: '#f0f0f0',
       marginBottom: 10
+    },
+    placeholder: {
+      color: '#999' // 👈 Isso aqui ajuda muito no Android
     }
   });
+  
