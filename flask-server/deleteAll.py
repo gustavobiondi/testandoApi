@@ -1,11 +1,12 @@
-from cs50 import SQL
+Opcoes = [{'Frutas':['abacaxi','limao']},{'Adicional':['leite condensado+2']}]
 
-db=SQL('sqlite:///dados.db')
 
-db.execute('DELETE FROM valores_pagos')
-db.execute('DELETE FROM faturamento_diario')
-db.execute('DELETE FROM pedidos')
+print(list(Opcoes[0].keys())[0])
 
-print(db.execute('SELECT * FROM pedidos'))
-print(db.execute('SELECT * FROM valores_pagos'))
-print(db.execute('SELECT * FROM faturamento_diario'))
+
+
+op
+
+
+
+Frutas 
