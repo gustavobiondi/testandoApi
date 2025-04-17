@@ -21,13 +21,13 @@ export default class VerComandas extends React.Component {
   componentDidMount() {
     this.socket = io(`${API_URL}`);
 
-    // Ouvir eventos de dados iniciais
-    this.socket.on('initial_data', (dados) => {
+    this.socket.emit('getComandas',false)
+    this.socket.on('respostaComandas', (dados) => {
       this.setState({
-        dataGeralAberto: dados.comandasAbertas,
-        dataGeralFechado: dados.comandasFechadas,
-        dataAberto: dados.comandasAbertas,
-        dataFechado: dados.comandasFechadas,
+        dataGeralAberto: dados.comandaAberta,
+        dataGeralFechado: dados.dados_comandaFechada,
+        dataAberto: dados.dados_comandaAberta,
+        dataFechado: dados.dados_comandaFechada,
       });
     });
   }
@@ -35,7 +35,7 @@ export default class VerComandas extends React.Component {
   // Função para atualizar a lista de comandas
   refreshData = () => {
     this.setState({ refreshing: true });
-    this.socket.emit('refresh')
+    this.socket.emit('getComandas',false)
     this.setState({refreshing:false})  
 
     

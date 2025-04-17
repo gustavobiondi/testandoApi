@@ -17,11 +17,8 @@ export default class HomeScreen extends React.Component {
       pedido: '',
       extra: '',
       nome:'',
-      preco: null,
-      preco_total:0,
-      preco_pago:0,
       data: [],
-      categoria: 'produto',
+      dataFixo:[],
       pedido_filtrado: [],
       comanda_filtrada:[],
       comanda_filtrada_abrir:[],
@@ -50,17 +47,20 @@ export default class HomeScreen extends React.Component {
        
     
 
-    this.socket = io(`${API_URL}`); // Se o backend estiver na porta 5000
-    this.socket.on('dados_atualizados', ({ dados }) => this.setState({ data: dados }));
-    this.socket.on('preco', (data) => this.setState({ preco: data.preco_a_pagar,preco_pago:data.preco_pago,preco_total:data.preco_total}));
-    this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
-    this.socket.on('pedidos', (res)=>{
-      
-      this.setState({ pedido_filtrado: res })
-      console.log(res)
+    this.socket = io(`${API_URL}`); // Se o backend estiver na
+    
+    this.socket.emit('getCardapio',false);
+    this.socket.on('respostaCardapio',(data)=>{ 
+      console.log('entrei get cardapio',data);
+      this.setState({pedido_filtrado:data.dataCardapio,dataFixo:data.dataCardapio})
     })
+    
+    
+    
+    this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
+  
     this.socket.on('comandas',(res)=> this.setState({ comanda_filtrada: res }))
-    this.socket.on('comandas_abrir',(res)=> this.setState({ comanda_filtrada_abrir: res }))
+    
     
     this.socket.on('alerta_restantes', (data) => {
       this.setState({ quantidadeRestanteMensagem: data.quantidade, pedidoRestanteMensagem: data.item });
@@ -93,8 +93,7 @@ export default class HomeScreen extends React.Component {
   }
 
   componentWillUnmount() {
-    this.socket.off('dados_atualizados');
-    this.socket.off('preco');
+    this.socket.off('getCardapio')
     this.socket.off('error');
     this.socket.off('pedidos');
     
@@ -104,7 +103,6 @@ export default class HomeScreen extends React.Component {
   
   changeComanda = (comand) => {
     const comandaLower = String(comand).toLowerCase();
-  
     this.setState({ 
       comand: comandaLower, 
       showComandaPedido: !!comand 
@@ -120,11 +118,25 @@ export default class HomeScreen extends React.Component {
   changePedido = (pedid) => {
     const pedido = String(pedid).toLowerCase()
     this.setState({pedido,showPedido: !!pedido,selecionaveis:[],selecionados:[],options:[]});
-    if (pedido) {
-      this.socket.emit('pesquisa', pedido);
+    if (pedido.startsWith('.') && pedido.length>1){
+      const pedidoSemPonto = pedido.slice(1)
+      const dataPesquisado = this.state.dataFixo.filter(item=>String(item.id)===pedidoSemPonto)
+      if (dataPesquisado){
+        this.setState({pedido_filtrado:dataPesquisado})
+      }
     }
+    else if (pedido && this.state.dataFixo){
+      const dataPesquisado = this.state.dataFixo.filter(item=>item.item.toLowerCase().startsWith(pedido))
+      if (dataPesquisado){
+      this.setState({pedido_filtrado:dataPesquisado})
+      }
+    }
+    else if (!pedido){
+      this.setState({pedido_filtrado:this.state.dataFixo})
+    }
+    
   };
-  changeCategoria = (categoria) => this.setState({ categoria });
+  
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
   sendData = () => {
@@ -454,17 +466,21 @@ export default class HomeScreen extends React.Component {
             ))}
 
             {this.state.showPedido && this.state.pedido_filtrado.map((item, index) => (
+
+              index<5 &&(
+
               <Pressable
                 key={index}
                 style={styles.pedidoSelecionadoItem}
                 onPress={() => {
                   Keyboard.dismiss();
-                  this.selecionarPedido(item);
+                  this.selecionarPedido(item.item);
                 }}
               >
-                <Text style={styles.pedidoText}>{item}</Text>
+                <Text style={styles.pedidoText}>{item.item}</Text>
               </Pressable>
-            ))}
+              )
+  ))}
 
             <TextInput
               placeholder="Extra (opcional)"

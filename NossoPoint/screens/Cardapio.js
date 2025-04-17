@@ -30,8 +30,6 @@ export default class ScreenCardapio extends React.Component {
       AdicionarItem:"",
       AdicionarPreco:'',
       AdicionarNovoNome:"",
-      AdicionarQuantidade:"",
-      AdicionarEstoqueIdeal:"",
       titleEnv:'',
       categoria:'',
       modalidade:'',
@@ -39,7 +37,6 @@ export default class ScreenCardapio extends React.Component {
       frutas:'',
       tamanho:'',
       instrucao:'',
-      pedido:'',
       selecionado:[],
     };
   }
@@ -50,10 +47,11 @@ export default class ScreenCardapio extends React.Component {
   }
 
   initializeData() {
-    this.socket.on('initial_data', (data) => {
-      console.log(data);
-      if (data.dados_cardapio) {
-        this.setState({ dataCardapio: data.dados_cardapio,data:data.dados_cardapio,dataGeral:data.dados_cardapio});
+    this.socket.emit('getCardapio',false)
+    this.socket.on('respostaCardapio', (data) => {
+      
+      if (data.dataCardapio) {
+        this.setState({ dataCardapio: data.dataCardapio,data:data.dataCardapio,dataGeral:data.dataCardapio});
       }
     });
   }
@@ -89,8 +87,9 @@ export default class ScreenCardapio extends React.Component {
     }
   };
   Enviar = () =>{
-    this.socket.emit('Alterar_cardapio',{tipo:this.state.titleEnv,item:this.state.AdicionarItem,categoria:this.state.categoria,preco:this.state.AdicionarPreco,novoNome:this.state.AdicionarNovoNome,instrucao:this.state.instrucao,frutas:this.state.frutas,modalidade:this.state.modalidade,adicionais:this.state.adicionais,tamanho:this.state.tamanho})
-    this.setState({AdicionarItem:'',AdicionarPreco:'',categoria:'',AdicionarNovoNome:'',instrucao:'',tamanho:'',frutas:'',modalidade:'',adicionais:''})
+    const {titleEnv}=this.state
+    this.socket.emit('Alterar_cardapio',{tipo:titleEnv,categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco, frutas, tamanho,  instrucao, adicionais,novoNome:AdicionarNovoNome})
+    this.setState({categoria:'',modalidade:'', AdicionarItem:'',  AdicionarPreco:'', frutas:'', tamanho:'', instrucao:'', adicionais:'', AdicionarNovoNome:''})
   }
 
   render() {
@@ -109,8 +108,8 @@ export default class ScreenCardapio extends React.Component {
           { key: 'Nome:', label: 'Nome do Item',nome:"AdicionarItem",tipoTeclado:'default'},
           { key: 'Preco:', label: 'Preco',nome:"AdicionarPreco",tipoTeclado:'numeric' },
           { key: 'categoria', label: 'Categoria'},   
-          { key: 'Frutas:', label: 'Ex: (abacaxi-banana-melancia)',categoria:'Bebida',nome:'frutas' },
-          { key: 'Instrucoes:', label: 'Ex: (Passo 1:  corta banana-Passo 2:30ml de cachaça-Passo 3: mexer bastante',categoria:'Bebida',nome:'instrucao' },
+          { key: 'Frutas:', label: 'Ex: (abacaxi-banana-melancia)',categoria:'Bebida' },
+          { key: 'Instrucoes:', label: 'Ex: (Passo 1:  corta banana-Passo 2:30ml de cachaça-Passo 3: mexer bastante',categoria:'Bebida' },
           { key: 'Tamanho:', label: 'Ex: (300g-500g+20-1kg+75)',categoria: 'Porção' },
           { key: 'Adicionais:', label: 'Ex: (cheddar E bacon+18-cebola empanada+15)', categoria:'Porção' },
           { key: 'modalidade', label: 'Modalidade',categoria:'Bebida'},
@@ -202,8 +201,6 @@ export default class ScreenCardapio extends React.Component {
                           AdicionarItem:"",
                           AdicionarPreco:'',
                           AdicionarNovoNome:"",
-                          AdicionarQuantidade:"",
-                          AdicionarEstoqueIdeal:"",
                           categoria:'',
                           modalidade:'',
                           adicionais:'',
@@ -257,8 +254,8 @@ export default class ScreenCardapio extends React.Component {
                                         key={idx}
                                         style={[
                                             styles.dropdownOption,
-                                            selecionado && styles.dropdownOptionSelecionado
-                                        ]}
+                                           selecionado && styles.dropdownOptionSelecionado
+                                        ]} 
                                         onPress={() => {op===this.state.categoria ?(
                                             this.setState({[item.key]:''})
                                         ):(this.setState({ [item.key]: op }))}}

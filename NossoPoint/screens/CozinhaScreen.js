@@ -25,9 +25,10 @@ export default class Cozinha extends React.Component {
     this.socket = io(`${API_URL}`);
 
     // Ouvir eventos de dados iniciais
-    this.socket.on('initial_data', (dados) => {
-      if(dados.dados_pedido){
-      const data_temp = dados.dados_pedido.filter(item => item.categoria === '3');
+    this.socket.emit('getPedidos',false)
+    this.socket.on('respostaPedidos', (dados) => {
+      if(dados.dataPedidos){
+      const data_temp = dados.dataPedidos.filter(item => item.categoria === '3');
       const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto");
         
       this.setState({
@@ -40,7 +41,7 @@ export default class Cozinha extends React.Component {
 
   componentWillUnmount() {
     if (this.socket) {
-      this.socket.off('initial_data');
+      this.socket.off('getPedidos');
     }
   }
 

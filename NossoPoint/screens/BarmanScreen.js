@@ -24,26 +24,29 @@ export default class BarmanScreen extends React.Component {
     this.socket = io(`${API_URL}`);
 
     // Ouvir eventos de dados iniciais
-    this.socket.on('initial_data', (dados) => {
+    this.socket.emit('getPedidos',false)
+    this.socket.on('respostaPedidos', (dados) => {
       console.log(dados)
-      if(dados.dados_pedido){
-      const data_temp = dados.dados_pedido.filter(item => item.categoria === '2');
+      if(dados.dataPedidos){
+      const data_temp = dados.dataPedidos.filter(item => item.categoria === '2');
       this.setState({ data: data_temp});
 
       const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto");
       this.setState({ data_filtrado: data_temp_filtrado });
 
-      this.socket.on('ingrediente', ({data}) => {
-        console.log(data)
-        this.setState({ ingredientes: data});
-      });
+    
     }
-  })}
+  })
+    this.socket.on('ingrediente', ({data}) => {
+      console.log(data)
+      this.setState({ ingredientes: data});
+    });
+}
 
   refreshData(){
     
     this.setState({ refreshing: true });
-    this.socket.emit('refresh')
+    this.socket.emit('getPedidos')
 
       // Inicializar showExtra e ingredientes com arrays do mesmo tamanho de data_temp
       this.setState({ 
@@ -52,7 +55,7 @@ export default class BarmanScreen extends React.Component {
     }
 
   componentWillUnmount() {
-    this.socket.off('initial_data');
+    this.socket.off('getPedidos');
     this.socket.off('ingrediente');
   }
 

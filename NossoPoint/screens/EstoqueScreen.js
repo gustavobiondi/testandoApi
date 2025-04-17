@@ -29,20 +29,21 @@ export default class EstoqueScreen extends React.Component {
   }
 
   componentDidMount() {
+    this.socket = io(`${API_URL}`);
     this.refreshData();  // Carregar os dados ao montar o componente
   }
 
   refreshData() {
     this.setState({ refreshing: true }); // Inicia o refresh
-    this.socket = io(`${API_URL}`);
     
-
-    this.socket.on('initial_data', (data) => {
+    
+    this.socket.emit('getEstoque',false)
+    this.socket.on('respostaEstoque', (data) => {
       console.log('Dados iniciais recebidos:', data);
-      if (data.dados_estoque){
+      if (data.dataEstoque){
       this.setState({
-        data: data.dados_estoque,
-        dataGeral: data.dados_estoque,
+        data: data.dataEstoque,
+        dataGeral: data.dataEstoque,
         refreshing: false, // Finaliza o refresh
       });
     }

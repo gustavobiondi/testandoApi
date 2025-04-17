@@ -45,7 +45,7 @@ class ComandaScreen extends React.Component {
     this.socket = io(`${API_URL}`);
 
 
-    // Adicionar novo pedido ou atualizar a quantidade e preço do existente
+    
 
     this.socket.on('preco', ( data ) => {
      
