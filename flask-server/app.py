@@ -18,8 +18,7 @@ import pandas as pd
 from io import BytesIO
 import logging
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
-import subprocess
-subprocess.run(["python", "manipule.py"])
+
 
 
 
