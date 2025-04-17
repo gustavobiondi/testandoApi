@@ -321,11 +321,11 @@ def editEstoque(data):
     elif tipo == 'Remover':
         db.execute(f"DELETE FROM {estoque} WHERE item=?",item)
     else:
-        if estoque_ideal:
+        if estoque_ideal and novoNome:
             db.execute(f"UPDATE {estoque} SET item=?, estoque_ideal=? WHERE item=?",novoNome, estoque_ideal,item )
-        elif not novoNome:
-            db.execute(f"UPDATE {estoque} SET estoque_ideal=? WHERE item=?",estoque_ideal,item    )
-        else:
+        elif estoque_ideal:
+            db.execute(f"UPDATE {estoque} SET estoque_ideal=? WHERE item=?",estoque_ideal,item)
+        elif novoNome:
             db.execute(f"UPDATE {estoque} SET item=? WHERE item=?",novoNome,item ) 
 
     if estoque=='estoque_geral':
