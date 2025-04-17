@@ -20,15 +20,17 @@ export default class PedidosScreen extends React.Component {
   }
 
   componentDidMount() {
+    this.socket = io(`${API_URL}`);
     this.refreshData();
   }
 
   refreshData() {
     this.setState({ refreshing: true });
-    this.socket = io(`${API_URL}`);
-    this.socket.on('initial_data', (dados) => {
-      if (dados.dados_pedido) {
-        const arrayInvertido = dados.dados_pedido.reverse(); // Reverte a ordem dos pedidos
+    
+    this.socket.emit('getPedidos',false)
+    this.socket.on('respostaPedidos', (dados) => {
+      if (dados.dataPedidos) {
+        const arrayInvertido = dados.dataPedidos.reverse(); // Reverte a ordem dos pedidos
         this.setState({ data: arrayInvertido, refreshing: false });
       }
     });

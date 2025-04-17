@@ -30,22 +30,25 @@ export default class EstoqueGeral extends React.Component {
     this.refreshData = this.refreshData.bind(this);
   }
   componentDidMount() {
+    this.socket = io(`${API_URL}`);
     this.refreshData();  // Carregar os dados ao montar o componente
   }
 
   refreshData() {
     this.setState({ refreshing: true }); // Inicia o refresh
-    this.socket = io(`${API_URL}`);
     
-
-    this.socket.on('initial_data', (data) => {
+    
+    this.socket.emit('getEstoqueGeral',false)
+    this.socket.on('respostaEstoqueGeral', (data) => {
       console.log('Dados iniciais recebidos:', data);
+      if (data){
       this.setState({
-        data: data.dados_estoque_geral,
-        dataGeral: data.dados_estoque_geral,
-        dataGeralAlterar:data.dados_estoque_geral,
+        data: data.dataEstoqueGeral,
+        dataGeral: data.dataEstoqueGeral,
+        dataGeralAlterar:data.dataEstoqueGeral,
         refreshing: false, // Finaliza o refresh
       });
+    }
     });
   }
 

@@ -35,6 +35,7 @@ export default class ChoseUser extends React.Component {
     
     this.setState({ refreshing: true });
     this.socket = io(`${API_URL}`)
+    this.socket.emit('users',false)
     this.socket.on('usuarios',(data) => {
       if (data){
       this.setState({ data: data.users, refreshing: false });

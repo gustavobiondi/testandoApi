@@ -18,13 +18,24 @@ import pandas as pd
 from io import BytesIO
 import logging
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
+import subprocess
+subprocess.run(["python", "manipule.py"])
+
 
 
 # Inicialização do app Flask e SocketIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'seu_segredo_aqui'
 socketio = SocketIO(app, cors_allowed_origins="*")
-db = SQL('sqlite:///dados.db')
+import shutil
+
+
+DATABASE_PATH = "/data/dados.db"
+if not os.path.exists(DATABASE_PATH):
+    shutil.copy("dados.db", DATABASE_PATH)
+db = SQL("sqlite:///" + DATABASE_PATH)
+
+
 CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
 brazil = timezone('America/Sao_Paulo')
 
@@ -194,9 +205,12 @@ def verif_quantidade():
             elif estoque_atual:
                 estoque_ideal = verificar_estoque[0]['estoque_ideal']
                 if estoque_ideal:
-                    if estoque_atual<estoque_ideal*0.5:
+                    alerta = 7 if item!='tropical' and item!='red bull' else 3
+                    if estoque_atual<alerta:
                         return {'erro': False, 'quantidade': estoque_atual}
     return {'erro': False}
+
+
 
 
 
@@ -224,21 +238,55 @@ def change_brinde():
 @socketio.on('connect')
 def handle_connect():
     print('Cliente conectado')
-    dados_pedido = db.execute('SELECT * FROM pedidos')
-    dados_estoque = db.execute('SELECT * FROM estoque')
+
+
+@socketio.on('getCardapio')
+def handleGetCardapio(emitirBroadcast):
+    dataCardapio = db.execute("SELECT * FROM cardapio")
+    emit('respostaCardapio',{'dataCardapio':dataCardapio},broadcast=emitirBroadcast)
+
+@socketio.on('getPedidos')
+def getPedidos(emitirBroadcast):
+    dataPedidos = db.execute('SELECT * FROM pedidos')
+    if dataPedidos:
+        emit('respostaPedidos',{'dataPedidos':dataPedidos},broadcast=emitirBroadcast)
+
+@socketio.on('getEstoque')
+def getEstoque(emitirBroadcast):
+    dataEstoque=db.execute('SELECT * FROM estoque')
+    if dataEstoque:
+        emit('respostaEstoque',{'dataEstoque':dataEstoque},broadcast=emitirBroadcast)
+
+@socketio.on('getEstoqueGeral')
+def getEstoqueGeral(emitirBroadcast):
+    dataEstoqueGeral=db.execute('SELECT * FROM estoque_geral')
+    if dataEstoqueGeral:
+        emit('respostaEstoqueGeral',{'dataEstoqueGeral':dataEstoqueGeral},broadcast=emitirBroadcast)
+
+
+@socketio.on('getComandas')
+def getComandas(emitirBroadcast):
     dados_comandaAberta = db.execute(
         'SELECT comanda FROM pedidos WHERE ordem = ? GROUP BY comanda', 0)
     dados_comandaFechada = db.execute(
         'SELECT comanda,ordem FROM pedidos WHERE ordem !=? GROUP BY comanda', 0)
-    dados_estoque_geral = db.execute('SELECT * FROM estoque_geral')
-    dados_cardapio = db.execute('SELECT * FROM cardapio')
-    users()
-    emit('initial_data', {'dados_pedido': dados_pedido,
-         'dados_estoque': dados_estoque, 'comandasAbertas': dados_comandaAberta, 'comandasFechadas': dados_comandaFechada,
-           'dados_estoque_geral': dados_estoque_geral,'dados_cardapio':dados_cardapio}, broadcast=True)
+    if dados_comandaAberta or dados_comandaFechada:
+        emit('respostaComandas', {'dados_comandaAberta':dados_comandaAberta,'dados_comandaFechada':dados_comandaFechada},broadcast=emitirBroadcast)
 
 
-# Manipulador de desconexão
+@socketio.on('users')
+def users(emitirBroadcast):
+    users = db.execute('SELECT * from usuarios')
+    emit('usuarios',{'users': users},broadcast=emitirBroadcast)
+
+
+
+
+
+
+
+
+
 
 
 @socketio.on('disconnect')
@@ -259,7 +307,7 @@ def editEstoque(data):
     item = data.get('item')
     novoNome = data.get('novoNome')
     quantidade = data.get('quantidade')
-    estoque_ideal = float(data.get('estoqueIdeal')) if data.get('estoqueIdeal') else False
+    estoque_ideal = data.get('estoqueIdeal')
     estoque = data.get('estoque')
     print("item", tipo)
     print("item", item)
@@ -274,15 +322,16 @@ def editEstoque(data):
     elif tipo == 'Remover':
         db.execute(f"DELETE FROM {estoque} WHERE item=?",item)
     else:
-        
-        if estoque_ideal and novoNome:
+        if estoque_ideal:
             db.execute(f"UPDATE {estoque} SET item=?, estoque_ideal=? WHERE item=?",novoNome, estoque_ideal,item )
         elif not novoNome:
             db.execute(f"UPDATE {estoque} SET estoque_ideal=? WHERE item=?",estoque_ideal,item    )
         else:
             db.execute(f"UPDATE {estoque} SET item=? WHERE item=?",novoNome,item ) 
-    estoque_novo = db.execute(f'SELECT * FROM {estoque}',)
-    emit('initial_data',{f'dados_{estoque}':estoque_novo},broadcast=True)
+
+    if estoque=='estoque_geral':
+        getEstoqueGeral(True)
+    else: getEstoque(True)
             
 
 
@@ -452,12 +501,9 @@ def handle_insert_order(data):
                 if quantidade_nova < 10:
                     emit('alerta_restantes', {
                          'quantidade': quantidade_nova, 'item': pedido}, broadcast=True)
-                dados_estoque = db.execute('SELECT * FROM estoque')
-                emit('initial_data', {
-                    'dados_pedido': dados_pedido, 'dados_estoque': dados_estoque}, broadcast=True)
-            else:
-                emit('initial_data', {
-                    'dados_pedido': dados_pedido}, broadcast=True)
+                getEstoque(True)            
+                
+            
 
         handle_get_cardapio(comanda)
 
@@ -529,7 +575,7 @@ def alterarValor(data):
             db.execute(
                 "INSERT INTO pedidos (pedido,quantidade,preco,comanda,ordem) VALUES (?,?,?,?,?)", "DESCONTO", 1, valor*-1, comanda, 0)
     faturamento()
-    handle_get_cardapio()
+    handle_get_cardapio(comanda)
 
 
 def calcular_faturamento(data):
@@ -580,7 +626,7 @@ def handle_atualizar_pedidos(data):
 
         db.execute("UPDATE pedidos SET comanda = ?, pedido = ?, quantidade = ?, extra = ?,preco = ? WHERE id = ?",
                p['comanda'], p['pedido'], p['quantidade'], p['extra'], p['preco'], p['id'])
-    handle_connect()
+    handle_get_cardapio(str(p['comanda']))
 
 
 @socketio.on('desfazer_pagamento')
@@ -627,24 +673,6 @@ def pesquisa_comanda(data):
     emit('comandas', comandas_filtradas)
 
 
-@socketio.on('pesquisa_abrir_comanda')
-def pesquisa_abrir_comanda(data):
-    comanda = data.get('comanda').lower()
-    comandas = db.execute(
-        'SELECT comanda FROM pedidos WHERE ordem = ? GROUP BY comanda', 0)
-    comandas_filtradas = []
-    cont = 0
-    for row in comandas:
-        if cont < 3:
-            pedido = row['comanda']
-            if pedido.startswith(comanda):
-                cont += 1
-                comandas_filtradas.append(pedido)
-        else:
-            break
-    emit('comandas_abrir', comandas_filtradas)
-
-
 @socketio.on('delete_comanda')
 def handle_delete_comanda(data):
     try:
@@ -684,8 +712,7 @@ def handle_delete_comanda(data):
         db.execute('UPDATE pedidos SET ordem = ordem +? WHERE comanda = ?',
                    1, comanda)
 
-        # Emitir o evento de comanda apagada
-        handle_connect()
+        handle_get_cardapio(comanda)
         emit('comanda_deleted', {'fcomanda': comanda}, broadcast=True)
 
     except Exception as e:
@@ -733,32 +760,6 @@ def pagar_parcial(data):
     handle_get_cardapio(comanda)
 
 
-@socketio.on('pesquisa')
-def pesquisa(data):
-    data_min = data.lower()
-    pedidos = db.execute('SELECT item FROM cardapio')
-    pedidos_filtrados = []
-    cont = 0
-    if data_min.startswith("."):
-        pedido = db.execute(
-            "SELECT item FROM cardapio WHERE id =?", data_min[1:])
-        if pedido:
-            pedidos_filtrados.append(pedido[0]['item'])
-
-        emit('pedidos', pedidos_filtrados)
-    else:
-        for row in pedidos:
-            if cont < 8:
-                pedido = row['item']
-                if pedido.startswith(data_min):
-                    cont += 1
-                    pedidos_filtrados.append(pedido)
-            else:
-                break
-        print(pedidos_filtrados)
-        emit('pedidos', pedidos_filtrados)
-
-
 @socketio.on('get_ingredientes')
 def get_ingredientes(data):
     item = data.get('ingrediente')
@@ -800,9 +801,7 @@ def inserir_preparo(data):
 
     db.execute('UPDATE pedidos SET estado = ? WHERE id = ?',
                estado, id)
-
-    dados_pedido = db.execute('SELECT * FROM pedidos')
-    emit('initial_data', {'dados_pedido': dados_pedido}, broadcast=True)
+    getPedidos(True)
 
 
 @socketio.on('atualizar_estoque_geral')
@@ -813,9 +812,7 @@ def atualizar_estoque_geral(data):
         quantidade = i['quantidade']
         db.execute('UPDATE estoque_geral SET quantidade = ? WHERE item = ?',
                    float(quantidade), item)
-    dados_estoque_geral = db.execute('SELECT * FROM estoque_geral')
-    emit('initial_data', {
-         'dados_estoque_geral': dados_estoque_geral}, broadcast=True)
+    getEstoqueGeral(True)
 
 
 @socketio.on('atualizar_estoque')
@@ -826,8 +823,7 @@ def atualizar_estoque(data):
         quantidade = i['quantidade']
         db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',
                    float(quantidade), item)
-    dados_estoque = db.execute('SELECT * FROM estoque')
-    emit('initial_data', {'dados_estoque': dados_estoque}, broadcast=True)
+    getEstoque(True)
 
 
 @socketio.on('atualizar_comanda')
@@ -918,10 +914,9 @@ def atualizar__comanda(data):
                                 ) subquery
                             );
                         ''', comanda)
-
+    
+    getEstoque(True)
     handle_get_cardapio(comanda)
-    handle_connect()
-
 
 @socketio.on('get_cardapio')
 def handle_get_cardapio(data):
@@ -965,11 +960,9 @@ def handle_get_cardapio(data):
                 preco_a_pagar = preco_total-preco_pago
                 emit('preco', {'preco_a_pagar': preco_a_pagar, 'preco_total': preco_total, 'preco_pago': preco_pago,
                                'dados': dados, 'comanda': fcomanda, 'nomes': nomes}, broadcast=True)
-                handle_connect()
             else:
                 emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': '', 'nomes': '',
                                'comanda': fcomanda}, broadcast=True)
-                handle_connect()
         else:
             dados = db.execute('''
                     SELECT pedido,id,ordem,nome,extra, SUM(quantidade) AS quantidade, SUM(preco) AS preco
@@ -977,11 +970,16 @@ def handle_get_cardapio(data):
                 ''', fcomanda, ordem)
             emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': dados, 'nomes': '',
                            'comanda': fcomanda}, broadcast=True)
-            handle_connect()
+        getPedidos(True)
+        getComandas(True)
+
 
     except Exception as e:
         print("Erro ao calcular preço:", e)
         emit('error', {'message': str(e)})
+
+
+
 
 @socketio.on('permitir')
 def permitir(data):
@@ -990,18 +988,15 @@ def permitir(data):
     numero = data.get('numero')
     db.execute('UPDATE usuarios SET liberado = ? WHERE id = ?',
                numero, id)  # Atualiza a coluna 'liberado'
-    users()
+    users(True)
 
-@socketio.on('users')
-def users():
-    users = db.execute('SELECT * from usuarios')
-    emit('usuarios',{'users': users},broadcast=True)
+
 
 @socketio.on('Delete_user')
 def delete_user(data):
     id = data.get('id')
     db.execute('DELETE FROM usuarios WHERE id = ?',id)
-    users()
+    users(True)
 
 @socketio.on('cadastrar')
 def cadastro(data):
@@ -1015,139 +1010,10 @@ def cadastro(data):
                username, senha, cargo, '1')
     print('sucesso'
           )
-    users()
+    users(True)
 
-@socketio.on('Alterar_cardapio')
-def alterar_cardapio(data):
-    categoria = data.get('categoria')
-    item = data.get('item')
-    preco = data.get('preco')
-    tipo=data.get('tipo')
-    print('Entrou')
-    if tipo =='Remover':
-        db.execute("DELETE FROM cardapio WHERE item = ?",item)
-    if categoria=='Bebida':
-        Frutas = data.get('frutas')
-        Modalidade = data.get('modalidade')
-        Instrucoes = data.get('instrucao')
-        categoria_id = 2
-        opcoes=''
-        instrucao = ''
-        if Frutas:
-            opcoes+='Frutas'+Frutas
-        if Modalidade:
-            instrucao+='Modalidade:'+Modalidade+'-'
-        if Instrucoes:
-            instrucao+=Instrucoes 
-        if tipo=='Adicionar':
-            
-            if opcoes and instrucao:
-                db.execute("INSERT INTO cardapio (item,preco,categoria_id,opcoes,instrucoes) VALUES (?,?,?,?,?)",item,preco,categoria_id,opcoes,instrucao)
-            elif opcoes:
-                db.execute("INSERT INTO cardapio (item,preco,categoria_id,opcoes) VALUES (?,?,?,?)",item,preco,categoria_id,opcoes)
-            elif instrucao:
-                db.execute("INSERT INTO cardapio (item,preco,categoria_id,instrucoes) VALUES (?,?,?,?)",item,preco,categoria_id,instrucao)
-            else:
-                db.execute("INSERT INTO cardapio (item,preco,categoria_id) VALUES (?,?,?)",item,preco,categoria_id) 
-     
-        elif tipo=='Editar':
-            novoNome=data.get('novoNome')
-            if novoNome and opcoes and instrucao:
-                db.execute(
-                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ?, opcoes = ?, instrucoes = ? WHERE item = ?",
-                    novoNome, preco, categoria_id, opcoes, instrucao, item
-                )
-            elif novoNome and instrucao:
-                db.execute(
-                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ?, instrucoes = ? WHERE item = ?",
-                    novoNome, preco, categoria_id, instrucao, item
-                )
-            elif novoNome and opcoes:
-                db.execute(
-                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ?, opcoes = ? WHERE item = ?",
-                    novoNome, preco, categoria_id, opcoes, item
-                )
-            elif novoNome:
-                db.execute(
-                    "UPDATE cardapio SET item = ?, preco = ?, categoria_id = ? WHERE item = ?",
-                    novoNome, preco, categoria_id, item
-                )
-            elif opcoes and instrucao:
-                db.execute(
-                    "UPDATE cardapio SET preco = ?, categoria_id = ?, opcoes = ?, instrucoes = ? WHERE item = ?",
-                    preco, categoria_id, opcoes, instrucao, item
-                )
-            elif opcoes:
-                db.execute(
-                    "UPDATE cardapio SET preco = ?, categoria_id = ?, opcoes = ? WHERE item = ?",
-                    preco, categoria_id, opcoes, item
-                )
-            elif instrucao:
-                db.execute(
-                    "UPDATE cardapio SET preco = ?, categoria_id = ?, instrucoes = ? WHERE item = ?",
-                    preco, categoria_id, instrucao, item
-                )
-            else:
-                db.execute(
-                    "UPDATE cardapio SET preco = ?, categoria_id = ? WHERE item = ?",
-                    preco, categoria_id, item
-                )
 
-            
-                
-
-    elif categoria=='Porção':
-        categoria_id = 3
-        opcoes = ''
-        if tipo == 'Adicionar':
-            tamanho = data.get('tamanho')
-            if tamanho:
-                opcoes+='Tamanho'+tamanho
-            adicionais = data.get('adicionais')
-            if adicionais:
-                opcoes+= 'Adicionais'+adicionais 
-            if opcoes:
-               db.execute("INSERT INTO cardapio (item,preco,categoria_id,opcoes) VALUES (?,?,?,?)",item,preco,categoria_id,opcoes)
-            else: db.execute("INSERT INTO cardapio (item,preco,categoria_id) VALUES (?,?,?)",item,preco,categoria_id)
-        elif tipo == 'Editar':
-            novoNome=data.get('novoNome')
-            item_tamanho = db.execute('SELECT opcoes FROM cardapio WHERE item=?',item)
-            if item_tamanho:
-                if 'Tamanho' in item_tamanho[0]['opcoes']:
-                    tamanhoFormatado = data.get('tamanho')
-                else:
-                    tamanhoFormatado ='Tamanho'+data.get('tamanho')
-                    if tamanhoFormatado:
-                        opcoes += tamanhoFormatado
-            item_adicionais = db.execute('SELECT opcoes FROM cardapio WHERE item=?',item)
-            if item_adicionais:
-                if ('Adicionais') in item_adicionais[0]['opcoes']:
-                    adicionaisFormatado = data.get('adicionais')
-                else:
-                    adicionaisFormatado ='Adicionais'+data.get('adicionais')
-                    if data.get('adicionais'):
-                        opcoes+=adicionaisFormatado
-            if novoNome and opcoes:
-                db.execute('UPDATE cardapio SET item = ?, opcoes = ?, categoria_id = ?, preco = ? WHERE item = ?',novoNome,opcoes,categoria_id,preco,item)
-            elif novoNome:
-                db.execute('UPDATE cardapio SET item = ?, categoria_id = ?, preco = ? WHERE item = ?',novoNome,categoria_id,preco,item)
-            elif opcoes:
-                db.execute('UPDATE cardapio SET opcoes = ?, categoria_id = ?, preco = ? WHERE item = ?',opcoes,categoria_id,preco,item)
-            else:
-                db.execute('UPDATE cardapio SET categoria_id = ?, preco = ? WHERE item = ?',categoria_id,preco,item)
-            
-    else:
-        categoria_id = 1
-        if tipo=="Adicionar":
-            db.execute('INSERT INTO cardapio (item,preco,categoria_id) VALUES(?,?,?)',item,preco,categoria_id)
-        elif tipo=="Editar":
-            novoNome=data.get('novoNome')
-            if novoNome:
-                db.execute('UPDATE cardapio set item = ?,preco = ?,categoria_id = ? WHERE item = ?',novoNome,preco,categoria_id, item)
-            else: db.execute('UPDATE cardapio set preco = ?,categoria_id = ? WHERE item = ?',preco,categoria_id,item)
-    handle_connect()
     
-
 
 
 if __name__ == '__main__':
