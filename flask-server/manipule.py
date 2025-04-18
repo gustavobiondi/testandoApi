@@ -10,7 +10,9 @@ if not os.path.exists(DATABASE_PATH):
 db = SQL("sqlite:///" + DATABASE_PATH)
 dia = datetime.now().date()
 
+db.execute('UPDATE estoque_geral SET item = ? WHERE estoque_ideal = ? AND quantidade = ?','agua',588,226)
+db.execute('UPDATE estoque_geral SET item = ? WHERE estoque_ideal = ? AND quantidade = ?','agua c gas',288,144)
+db.execute('UPDATE estoque_geral SET item = ? WHERE estoque_ideal = ? AND quantidade = ?','agua tonica',60,48)
+db.execute('UPDATE estoque_geral SET item = ? WHERE estoque_ideal = ? AND quantidade = ?','tang',64,160)
 
-db.execute('INSERT INTO usuarios  (username,senha,liberado,cargo) VALUES (?,?,?,?)',"baiano",'0000','1','colaborador')
-db.execute('INSERT INTO usuarios  (username,senha,liberado,cargo) VALUES (?,?,?,?)',"roberto",'1234','1','colaborador')
-print(db.execute("SELECT * FROM usuarios"))
+print(db.execute('SELECT * FROM estoque_geral'))
