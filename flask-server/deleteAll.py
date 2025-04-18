@@ -1,12 +1,5 @@
-Opcoes = [{'Frutas':['abacaxi','limao']},{'Adicional':['leite condensado+2']}]
+from cs50 import SQL
 
+db=SQL('sqlite:///data/dados.db')
 
-print(list(Opcoes[0].keys())[0])
-
-
-
-op
-
-
-
-Frutas 
+print(db.execute('SELECT * FROM estoque_geral'))

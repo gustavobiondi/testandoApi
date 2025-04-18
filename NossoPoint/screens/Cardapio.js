@@ -15,6 +15,14 @@ import { API_URL } from './url';
 import { style } from 'twrnc';
 
 export default class ScreenCardapio extends React.Component {
+ get defaultOpcoes(){
+  return [
+    {
+      titulo: '',
+      conteudo: ['']
+    }
+  ];
+}
   constructor(props) {
     super(props);
     this.state = {
@@ -38,6 +46,12 @@ export default class ScreenCardapio extends React.Component {
       tamanho:'',
       instrucao:'',
       selecionado:[],
+      opcoes:[
+        {
+          titulo:'',
+          conteudo:['']
+        }
+      ]
     };
   }
 
@@ -55,21 +69,15 @@ export default class ScreenCardapio extends React.Component {
       }
     });
   }
-  getDados(sugestao){
-    console.log('entrou', sugestao)
-    if(sugestao.categoria_id===2){
-        const instrucao=sugestao.instrucoes
-        const modalidadeMatch = instrucao.match(/Modalidade:\s*([^-]+)/)
-        this.setState({modalidade:modalidadeMatch?modalidadeMatch[1].trim():null})
-        console.log('modalidade:', modalidadeMatch)
-        const instrucaoMacth = instrucao.match(/-s*(Passo.+)/)
-        this.setState({instrucao:instrucaoMacth?instrucaoMacth[1].trim():null})
-        console.log(instrucaoMacth)
-    }
-    else if(sugestao.categoria_id===3){
-
-    }
+  getDados(sugestao){ 
+    this.socket.emit('getItemCardapio',{item:sugestao.item})
+    this.socket.once('respostaGetItemCardapio',(data)=>{
+      if (data.opcoes){
+        this.setState({opcoes:data.opcoes})
+      }
+  })
   }
+  
   searchEstoque = (text,data) => {
     if (text){
     const normalizedEstoque = text.toLowerCase();
@@ -86,9 +94,51 @@ export default class ScreenCardapio extends React.Component {
         this.setState({cardapio:text,[data]:this.state.dataCardapio})
     }
   };
+  adicionarOpcao = () => {
+    this.setState((prevState) => ({
+      opcoes: [...prevState.opcoes, { titulo: '', conteudo: [''] }]
+    }));
+  };
+  removerConteudo = (opcaoIndex, conteudoIndex) => {
+    const novasOpcoes = [...this.state.opcoes];
+    novasOpcoes[opcaoIndex].conteudo.splice(conteudoIndex, 1);
+    this.setState({ opcoes: novasOpcoes });
+  };
+  
+  removerOpcao = (opcaoIndex) => {
+    const novasOpcoes = [...this.state.opcoes];
+    novasOpcoes.splice(opcaoIndex, 1);
+    this.setState({ opcoes: novasOpcoes });
+  };
+  
+  adicionarConteudo = (index) => {
+    const novasOpcoes = [...this.state.opcoes];
+    novasOpcoes[index].conteudo.push('');
+    this.setState({ opcoes: novasOpcoes });
+  };
+  atualizarTitulo = (index, texto) => {
+    const novasOpcoes = [...this.state.opcoes];
+    novasOpcoes[index].titulo = texto;
+    this.setState({ opcoes: novasOpcoes });
+  };
+  
+  atualizarConteudo = (opcaoIndex, conteudoIndex, texto) => {
+    const novasOpcoes = [...this.state.opcoes];
+    novasOpcoes[opcaoIndex].conteudo[conteudoIndex] = texto;
+    this.setState({ opcoes: novasOpcoes });
+  };
   Enviar = () =>{
-    const {titleEnv}=this.state
-    this.socket.emit('Alterar_cardapio',{tipo:titleEnv,categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco, frutas, tamanho,  instrucao, adicionais,novoNome:AdicionarNovoNome})
+    const {categoria,modalidade,AdicionarItem,AdicionarPreco,opcoes,titleEnv,AdicionarNovoNome}=this.state
+    console.log(this.state.opcoes)
+    if(titleEnv==='Adicionar'){
+    this.socket.emit('adicionarCardapio',{categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco,opcoes:opcoes})
+    }
+    else if(titleEnv==='Editar'){
+      this.socket.emit('editarCardapio',{categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco,novoNome:AdicionarNovoNome,opcoes:opcoes})
+    }
+    else if (titleEnv==='Remover'){
+      this.socket.emit('removerCardapio',{item:AdicionarItem})
+    }
     this.setState({categoria:'',modalidade:'', AdicionarItem:'',  AdicionarPreco:'', frutas:'', tamanho:'', instrucao:'', adicionais:'', AdicionarNovoNome:''})
   }
 
@@ -107,11 +157,7 @@ export default class ScreenCardapio extends React.Component {
             inputs = [
           { key: 'Nome:', label: 'Nome do Item',nome:"AdicionarItem",tipoTeclado:'default'},
           { key: 'Preco:', label: 'Preco',nome:"AdicionarPreco",tipoTeclado:'numeric' },
-          { key: 'categoria', label: 'Categoria'},   
-          { key: 'Frutas:', label: 'Ex: (abacaxi-banana-melancia)',categoria:'Bebida' },
-          { key: 'Instrucoes:', label: 'Ex: (Passo 1:  corta banana-Passo 2:30ml de cachaça-Passo 3: mexer bastante',categoria:'Bebida' },
-          { key: 'Tamanho:', label: 'Ex: (300g-500g+20-1kg+75)',categoria: 'Porção' },
-          { key: 'Adicionais:', label: 'Ex: (cheddar E bacon+18-cebola empanada+15)', categoria:'Porção' },
+          { key: 'categoria', label: 'Categoria'},
           { key: 'modalidade', label: 'Modalidade',categoria:'Bebida'},
         ];
         titleEnviar = "Adicionar";
@@ -121,10 +167,6 @@ export default class ScreenCardapio extends React.Component {
           { key: 'Novo nome', label: 'Novo Nome do Item',nome:"AdicionarNovoNome",tipoTeclado:'default'},
           { key: 'Preco:', label: 'Preco',nome:"AdicionarPreco",tipoTeclado:'numeric' },
           { key: 'categoria', label: 'Categoria'},
-          { key: 'Tamanho', label: 'Ex: (300g-500g+20-1kg+75)',nome:'tamanho',categoria: 'Porção' },
-          { key: 'Adicionais', label: 'Ex: (cheddar E bacon+18-cebola empanada+15)',nome:'adicionais', categoria:'Porção' },
-          { key: 'Frutas', label: 'Ex: (abacaxi-banana-melancia)',categoria:'Bebida',nome:'frutas' },
-          { key: 'Instrucoes', label: 'Ex: (Passo 1:  corta banana-Passo 2:30ml de cachaça-Passo 3: mexer bastante',nome:'instrucao',categoria:'Bebida' },
           { key: 'modalidade', label: 'Modalidade',categoria:'Bebida'},
         ];
         titleEnviar = "Editar";
@@ -184,6 +226,7 @@ export default class ScreenCardapio extends React.Component {
                     showInputsAdicionar: false,
                     showInputEditar: false,
                     showInputsRemover: false,
+                    opcoes:this.defaultOpcoes,
                   })
                 }
               >
@@ -207,6 +250,7 @@ export default class ScreenCardapio extends React.Component {
                           frutas:'',
                           tamanho:'',
                           instrucao:'',
+                          opcoes:this.defaultOpcoes,
                           }
                         )):(this.setState({showAdicionar:true}))
                       }}
@@ -235,13 +279,24 @@ export default class ScreenCardapio extends React.Component {
                       />
                     </View>
                   ) : (
-                    <FlatList
-                    data={inputs.filter(item=> !item.categoria || item.categoria===this.state.categoria)}    
-                    keyExtractor={(item) => item.key}
-                      renderItem={({ item }) => (
-                        <View style={styles.inputGroup}>
+                    <ScrollView>
+                     {inputs
+                      .filter(item => !item.categoria || item.categoria === this.state.categoria)
+                      .map((item, index) => (
+                        <View key={`input-${index}`} style={styles.inputGroup}>
                           {/* Categoria e Modalidade como dropdown mock */}
-                          {(item.key === 'categoria' || (item.key === 'modalidade' && this.state.categoria==='Bebida')) ? (
+                        {(item.key !== 'categoria' && item.key !== 'modalidade' && (showInputsAdicionar || item.key!=='Nome')) ?(
+                          <View>
+                                    <Text style={styles.inputLabel}>{item.key}</Text>
+                                <TextInput  
+                                    style={styles.inputSimples}
+                                    placeholder={item.label}
+                                    keyboardType={item.tipoTeclado}
+                                    value={this.state[item.nome]}
+                                    onChangeText={(text) =>this.setState({ [item.nome]: text })}
+                                />
+                                </View>
+                          ) : (item.key==='categoria' || (item.key==='modalidade' && this.state.categoria==='Bebida')) &&(
                                 <View style={styles.dropdownMock}>
                                      <Text style={styles.inputLabel}>{item.label}</Text>
                                     <Text style={styles.dropdownText}>Selecionar {item.key}</Text>
@@ -256,9 +311,9 @@ export default class ScreenCardapio extends React.Component {
                                             styles.dropdownOption,
                                            selecionado && styles.dropdownOptionSelecionado
                                         ]} 
-                                        onPress={() => {op===this.state.categoria ?(
-                                            this.setState({[item.key]:''})
-                                        ):(this.setState({ [item.key]: op }))}}
+                                        onPress={() => 
+                                            
+                                        this.setState({ [item.key]: op, opcoes:this.defaultOpcoes })}
                                         >
                                         <Text style={selecionado ? styles.dropdownTextoSelecionado : null}>{op}</Text>
                                         </TouchableOpacity>
@@ -266,9 +321,9 @@ export default class ScreenCardapio extends React.Component {
                                 
                                     })}
                                 </View>
-                                ) : 
-                                    (item.nome === 'AdicionarItem'&&(showInputEditar||showInputsRemover)) ? (
-                                        <>
+                          )}
+                                   {(item.nome === 'AdicionarItem'&&(showInputEditar||showInputsRemover)) && (
+                                        <View>
                                           <Text style={styles.inputLabel}>{item.key}</Text>
                                           <TextInput
                                             style={styles.inputSimples}
@@ -280,7 +335,7 @@ export default class ScreenCardapio extends React.Component {
                                               this.searchEstoque(text,'dataGeral'); // filtrar sugestões
                                             }}
                                           />
-                                          {(this.state.AdicionarItem && !this.state.AdicionarPreco)&&
+                                          {(!!this.state.AdicionarItem && !this.state.AdicionarPreco)&&
                                           <ScrollView style={{ maxHeight: 150 }}>
                                             {this.state.dataGeral.map((sugestao, idx) => (
                                               <TouchableOpacity
@@ -304,45 +359,131 @@ export default class ScreenCardapio extends React.Component {
                                                 <Text>{sugestao.item}</Text>
                                               </TouchableOpacity>
                                             ))}
+                                            
                                           </ScrollView>
-                      }
-                                        </>
-                                      ) : (
-                                    <View>
-                                    <Text style={styles.inputLabel}>{item.key}</Text>
-                                <TextInput
-                                    style={styles.inputSimples}
-                                    placeholder={item.label}
-                                    keyboardType={item.tipoTeclado}
-                                    value={this.state[item.nome]}
-                                    onChangeText={(text) =>this.setState({ [item.nome]: text })}
-                                />
-                                </View>
-                                )}
+
+                                          
+                                          
+                                
+                                }
+                                </View>)}
+                                
                         </View>
-                  )}
-                      ListFooterComponent={<View style={{ height: 20 }} />}
-                    />
-                  )}
-                  {(showInputsAdicionar || showInputEditar || showInputsRemover) &&( 
-                  <TouchableOpacity style={styles.botaoEnviar} onPress={()=>{this.setState({titleEnv:titleEnviar},()=>{
-                  this.Enviar();
-                  });
-                  }}>
-                  <Text style={styles.textoBotaoEnviar}>{titleEnviar}</Text>
-                </TouchableOpacity>
-                )}
-                </View>
-              </Modal>
-               {showAdicionar &&(
-                <TouchableOpacity style={styles.buttonAdicionar} onPress={()=> this.setState({showAdicionar:false})}>
-                  <Text style={styles.buttonTexto}>+</Text>   
-                </TouchableOpacity>
-          )}
-      </View>
-    );
-  }
-}
+                  ))}
+                        {!showInputsRemover && !!this.state.categoria && this.state.categoria!=='Restante'&& (
+                   <View style={{ padding: 15 }}>
+
+  { this.state.opcoes.map((opcao, opcaoIndex) => (
+    <View
+      key={`opcao-${opcaoIndex}`}
+      style={{
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 20,
+        borderRadius: 8,
+      }}
+    >
+      <Text style={styles.inputLabel}>Título da Seção</Text>
+      <TextInput
+        style={styles.inputSimples}
+        placeholder="Digite o título"
+        value={opcao.titulo}
+        onChangeText={(text) => this.atualizarTitulo(opcaoIndex, text)}
+      />
+
+      <Text style={[styles.inputLabel, { marginTop: 10 }]}>Conteúdos:</Text>
+
+      {opcao.conteudo.map((conteudo, conteudoIndex) => {
+  const ehUltimo = conteudoIndex === opcao.conteudo.length - 1;
+  return (
+    <View
+      key={`opcoes-${opcaoIndex}-conteudo-${conteudoIndex}`}
+      style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
+    >
+      <TextInput
+        style={[styles.inputSimples, { flex: 1, marginRight: 10 }]}
+        placeholder="Digite o conteúdo"
+        value={conteudo}
+        onChangeText={(text) =>
+          this.atualizarConteudo(opcaoIndex, conteudoIndex, text)
+        }
+      />
+      <TouchableOpacity
+        onPress={() =>
+          ehUltimo
+            ? this.adicionarConteudo(opcaoIndex)
+            : this.removerConteudo(opcaoIndex, conteudoIndex)
+        }
+        style={{
+          backgroundColor: ehUltimo ? '#000' : '#ff3b30',
+          padding: 10,
+          borderRadius: 100,
+        }}
+      >
+        <Text style={{ color: 'white', fontSize: 18 }}>
+          {ehUltimo ? '+' : '-'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+})}
+
+      <TouchableOpacity
+        onPress={this.adicionarOpcao}
+        style={{
+          marginTop: 10,
+          alignSelf: 'flex-start',
+          backgroundColor: '#007bff',
+          paddingVertical: 6,
+          paddingHorizontal: 12,
+          borderRadius: 5,
+        }}
+      >
+        <Text style={{ color: 'white' }}>+ Nova Seção</Text>
+      </TouchableOpacity>
+      {this.state.opcoes.length>1 &&(
+      <TouchableOpacity
+  onPress={() => this.removerOpcao(opcaoIndex)}
+  style={{
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: '#ff3b30',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+  }}
+>
+  <Text style={{ color: 'white' }}>Remover Seção</Text>
+</TouchableOpacity>
+)}
+    </View>
+  ))}
+</View>   )}
+                    
+            <View style={{ height: 20 }} />
+            </ScrollView>
+
+            )}
+            {(showInputsAdicionar || showInputEditar || showInputsRemover) &&( 
+            <TouchableOpacity style={styles.botaoEnviar} onPress={()=>{this.setState({titleEnv:titleEnviar},()=>{
+            this.Enviar();
+            });
+            }}>
+            <Text style={styles.textoBotaoEnviar}>{titleEnviar}</Text>
+            </TouchableOpacity>
+            )}
+            </View>
+            </Modal>
+            {showAdicionar &&(
+            <TouchableOpacity style={styles.buttonAdicionar} onPress={()=> this.setState({showAdicionar:false})}>
+            <Text style={styles.buttonTexto}>+</Text>   
+            </TouchableOpacity>
+            )}
+            </View>
+            );
+            }
+            }
 
 const styles = StyleSheet.create({
   container: {

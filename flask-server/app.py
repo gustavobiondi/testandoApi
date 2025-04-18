@@ -18,8 +18,12 @@ import pandas as pd
 from io import BytesIO
 import logging
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
+import subprocess
+subprocess.run(['python', 'manipule.py'])
 
 
+
+var = True
 
 
 # Inicialização do app Flask e SocketIO
@@ -28,12 +32,13 @@ app.config['SECRET_KEY'] = 'seu_segredo_aqui'
 socketio = SocketIO(app, cors_allowed_origins="*")
 import shutil
 
-
-DATABASE_PATH = "/data/dados.db"
-if not os.path.exists(DATABASE_PATH):
-    shutil.copy("dados.db", DATABASE_PATH)
-db = SQL("sqlite:///" + DATABASE_PATH)
-
+if var:
+    DATABASE_PATH = "/data/dados.db"
+    if not os.path.exists(DATABASE_PATH):
+        shutil.copy("dados.db", DATABASE_PATH)
+    db = SQL("sqlite:///" + DATABASE_PATH)
+else:
+    db=SQL('sqlite:///data/dados.db')
 
 CORS(app, resources={r"/*": {"origins": "*"}})  # Permite todas as origens
 brazil = timezone('America/Sao_Paulo')
@@ -69,7 +74,7 @@ def atualizar_faturamento_diario():
 
 # Agendador para rodar à meia-noite
 scheduler = BackgroundScheduler()
-scheduler.add_job(atualizar_faturamento_diario, 'cron', hour=1, minute=0, timezone = brazil)
+scheduler.add_job(atualizar_faturamento_diario, 'cron', hour=0, minute=1, timezone = brazil)
 scheduler.start()
 
 # Garante que o scheduler pare quando encerrar o servidor
@@ -240,7 +245,7 @@ def handle_connect():
 
 
 @socketio.on('getCardapio')
-def handleGetCardapio(emitirBroadcast):
+def getCardapio(emitirBroadcast):
     dataCardapio = db.execute("SELECT * FROM cardapio")
     emit('respostaCardapio',{'dataCardapio':dataCardapio},broadcast=emitirBroadcast)
 
@@ -1012,7 +1017,120 @@ def cadastro(data):
     users(True)
 
 
+@socketio.on('adicionarCardapio')
+def adicionarCardapio(data):
+    print(data.get('opcoes'))
+    item = data.get('item')
+    preco = data.get('preco')
+    categoria = data.get('categoria')
+    if not item or not preco or not categoria:
+        emit('Erro',{'Alguma categoria faltando'})
+    else:
+        if categoria != 'Restante':
+            opcoes = data.get('opcoes')
+            if categoria == 'Bebida':
+                categoria_id = 2
+            elif categoria == 'Porção':
+                categoria_id = 3
+            opcoesFormatadas = ''
+            for row in opcoes:
+                opcoesFormatadas+=row['titulo']
+                print (opcoesFormatadas)
+                opcoesFormatadas+='('
+                for i in range(len(row['conteudo'])):
+                    opcoesFormatadas+=row['conteudo'][i]
+                    if i != len(row['conteudo'])-1:
+                        opcoesFormatadas+='-'
+                opcoesFormatadas+=')'
+            db.execute('INSERT INTO cardapio (item,categoria_id,preco,opcoes) VALUES(?,?,?,?)',item,categoria_id,float(preco),opcoesFormatadas)  
+        else:
+            db.execute('INSERT INTO cardapio (item,categoria_id,preco) VALUES (?,?,?)',item,1,float(preco))
+        getCardapio(True)
+                
+                    
+
+            
+
+
+
+@socketio.on('editarCardapio')
+def editarCardapio(data):
+    item = data.get('item')
+    preco = data.get('preco')
+    categoria = data.get('categoria')
+    novoNome = data.get('novoNome')
+    opcoes = data.get('opcoes')
+    if item and preco and categoria:
+        if categoria == 'Restante':
+            categoria_id = 1
+        elif categoria =='Porção':
+            categoria_id= 3
+        elif categoria == 'Bebida':
+            categoria_id = 2
+        opcoesFormatadas = ''
+        if opcoes:
+        
+            for row in opcoes:
+                opcoesFormatadas+=row['titulo']
+                print (opcoesFormatadas)
+                opcoesFormatadas+='('
+                for i in range(len(row['conteudo'])):
+                    opcoesFormatadas+=row['conteudo'][i]
+                    if i != len(row['conteudo'])-1:
+                        opcoesFormatadas+='-'
+                opcoesFormatadas+=')'
+        if opcoesFormatadas and novoNome:
+            db.execute("UPDATE cardapio SET item =?,preco=?,categoria_id=?,opcoes=? WHERE item = ?",novoNome,preco,categoria_id,opcoesFormatadas,item)
+        elif opcoesFormatadas:
+            db.execute("UPDATE cardapio SET preco=?,categoria_id=?,opcoes=? WHERE item = ?",preco,categoria_id,opcoesFormatadas,item)
+        elif novoNome:
+            db.execute("UPDATE cardapio SET item =?,preco=?,categoria_id=? WHERE item = ?",novoNome,preco,categoria_id,item)
+        else:
+            db.execute("UPDATE cardapio SET preco=?,categoria_id=? WHERE item = ?",preco,categoria_id,item)
+        getCardapio(True)
+
+            
+            
+        
+
+@socketio.on('removerCardapio')
+def removerCardapio(data):
+    item=data.get('item')
+    print("Removendo item:", item)
+    db.execute("DELETE FROM cardapio WHERE item=?",item)
+    getCardapio(True)
     
+
+
+@socketio.on('getItemCardapio')
+def getItemCardapio(data):
+    item = data.get('item')
+    print(item) 
+    opcoes = db.execute('SELECT opcoes FROM cardapio WHERE item = ?', item)
+    if opcoes:
+        palavra = ''
+        selecionaveis = []
+        dados = []
+        for i in opcoes[0]['opcoes']:
+            if i == '(':
+                nome_selecionavel = palavra
+                print(nome_selecionavel)
+                palavra = ''
+            elif i == '-':
+                selecionaveis.append(palavra)
+                palavra = ''
+            elif i == ')':
+                selecionaveis.append(palavra)
+                dados.append({'titulo':nome_selecionavel,'conteudo':selecionaveis})
+                selecionaveis = []
+                palavra = ''
+            else:
+                palavra += i
+
+        print(dados)
+        emit('respostaGetItemCardapio',{'opcoes':dados})
+        
+            
 
 
 if __name__ == '__main__':
