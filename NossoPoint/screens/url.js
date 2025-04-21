@@ -1,1 +1,1 @@
-export const API_URL = "https://flask-backend-server-yxom.onrender.com"
+export const API_URL = "http://192.168.15.69:8000"

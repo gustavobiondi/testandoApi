@@ -1,7 +1,7 @@
 import React from "react";
 import { KeyboardAvoidingView,View,Text,TextInput,Button,StyleSheet,TouchableOpacity} from "react-native";
 import { API_URL } from "./url";
-import RNPickerSelect from 'react-native-picker-select';
+import { Picker } from "@react-native-picker/picker";
 import io from 'socket.io-client';
  
 
@@ -63,18 +63,19 @@ export default class Cadastro extends React.Component{
               value={this.state.username}
               onChangeText={(username) => this.setState({ username })}
             />
-            <RNPickerSelect
-              onValueChange={(value) => this.setState({ cargo: value })}
-              value={this.state.cargo}
-              placeholder={{ label: 'Selecionar Cargo', value: '' }}
-              items={[
-                { label: 'Colaborador', value: 'Colaborador' },
-                { label: 'ADM', value: 'ADM' },
-                { label: 'Entregador', value: 'Entregador' },
-                { label: 'Cozinha', value: 'Cozinha' }
-              ]}
-              style={pickerSelectStyles}
-          />
+            <Picker
+          selectedValue={this.state.cargo}
+          onValueChange={(value) => this.setState({ cargo: value })}
+          style={styles.picker}
+        >
+          {/* “Placeholder” */}
+          <Picker.Item label="Selecionar Cargo" value="" />
+          {/* Opções */}
+          <Picker.Item label="Colaborador" value="Colaborador" />
+          <Picker.Item label="ADM" value="ADM" />
+          <Picker.Item label="Entregador" value="Entregador" />
+          <Picker.Item label="Cozinha" value="Cozinha" />
+        </Picker>
             <TextInput
             style={styles.input}
               secureTextEntry={true}
@@ -127,31 +128,8 @@ const styles = StyleSheet.create({
       color: 'white',
       fontWeight: 'bold',
     },
-  });
-
-  const pickerSelectStyles = StyleSheet.create({
-    inputIOS: {
-      fontSize: 16,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: '#ccc',
-      borderRadius: 5,
-      color: 'black',
-      backgroundColor: '#f0f0f0',
-      marginBottom: 10
+    picker: {
+      height: 50,
+      width: '100%',
     },
-    inputAndroid: {
-      fontSize: 16,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: '#ccc',
-      borderRadius: 5,
-      color: 'black',
-      backgroundColor: '#f0f0f0',
-      marginBottom: 10
-    },
-    placeholder: {
-      color: '#999' // 👈 Isso aqui ajuda muito no Android
-    }
-  });
-  
+  });  

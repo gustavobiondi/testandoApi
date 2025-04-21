@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { FlatList, View, StyleSheet, Text, RefreshControl, Button,TouchableOpacity ,Modal, Alert} from 'react-native';
 import { UserContext } from '../UserContext'; // Import the UserContext
 import { API_URL } from "./url";
-import RNPickerSelect from 'react-native-picker-select';
+import { Picker } from "@react-native-picker/picker";
 import io from 'socket.io-client';
 
 export default class ChoseUser extends React.Component {
@@ -20,6 +20,8 @@ export default class ChoseUser extends React.Component {
       senhaUsuarioSelected:'',
       remover:'',
       idUsuarioSelected:'',
+      cargoUsuarioSelected: '',
+      cargos: [ 'Colaborador', 'ADM', 'Entregador', 'Cozinha' ]
     };
   }
 
@@ -55,7 +57,7 @@ export default class ChoseUser extends React.Component {
   render() {
     const { data,refreshing,showModal } = this.state;
 
-    const cargos = ['colaborador','ADM','entregador','cozinha']
+    const { cargoUsuarioSelected, cargos } = this.state;
 
     return (
       <View style={styles.container}>
@@ -118,13 +120,23 @@ export default class ChoseUser extends React.Component {
             </TouchableOpacity>
             <Text style={styles.headerText}>Usuario: 👤 {this.state.usuarioSelected}</Text>
           </View>
-          <RNPickerSelect
-          onValueChange={(value) => this.setState({ cargoUsuarioSelected: value })}
-          value={this.state.cargoUsuarioSelected}
-          placeholder={{ label: `${this.state.cargoUsuarioSelected}`, value :`${this.state.cargoUsuarioSelected}`}}
-          items={cargos.filter(item=>item!==this.state.cargoUsuarioSelected).map(item=>({label:item,value:item}))}
-          style={pickerSelectStyles}
-      />
+          <Picker
+          selectedValue={cargoUsuarioSelected}
+          onValueChange={value => this.setState({ cargoUsuarioSelected: value })}
+          style={styles.picker}
+        >
+          <Picker.Item
+            label={cargoUsuarioSelected || 'Selecionar Cargo'}
+            value={cargoUsuarioSelected || ''}
+          />
+          
+          {cargos
+            .filter(item => item !== cargoUsuarioSelected)
+            .map(item => (
+              <Picker.Item key={item} label={item} value={item} />
+            ))
+          }
+        </Picker>
       
       <Button title='Remover' onPress={()=>{
         Alert.alert(
@@ -220,27 +232,8 @@ const styles = StyleSheet.create({
     left:10,
     marginRight:20,
   },
-  
-});
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    color: 'black',
-    backgroundColor: '#f0f0f0',
-    marginBottom: 10
+  picker: {
+    height: 50,
+    width: '100%',
   },
-  inputAndroid: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    color: 'black',
-    backgroundColor: '#f0f0f0',
-    marginBottom: 10,
-  }
-})
+});
