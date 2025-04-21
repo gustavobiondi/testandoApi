@@ -526,7 +526,7 @@ def faturamento():
     faturamento = faturament[0]['faturamento'] if faturament else '0'
     caixinha = faturament[0]['caixinha'] if faturament[0]['caixinha'] else '0'
     faturamento_prev = db.execute(
-        "SELECT SUM (preco*quantidade) AS valor_previsto FROM pedidos")
+        "SELECT SUM (preco) AS valor_previsto FROM pedidos")
     faturamento_previsto = faturamento_prev[0]['valor_previsto'] if faturamento_prev[0]['valor_previsto'] else '0'
     drinks = db.execute(
         "SELECT SUM(quantidade) AS totaldrink,SUM(preco)as preco_drinks FROM pedidos WHERE categoria =?", 2)
@@ -954,7 +954,7 @@ def handle_get_cardapio(data):
 
                 dados = db.execute('''
                     SELECT pedido,id,ordem,nome,extra, SUM(quantidade) AS quantidade, SUM(preco) AS preco
-                    FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido, preco
+                    FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido, (preco/quantidade)
                 ''', fcomanda, ordem)
                 nomes = db.execute(
                     'SELECT nome FROM pedidos WHERE comanda = ? AND ordem = ? AND nome != ? GROUP BY nome', fcomanda, ordem, '-1')
@@ -970,7 +970,7 @@ def handle_get_cardapio(data):
         else:
             dados = db.execute('''
                     SELECT pedido,id,ordem,nome,extra, SUM(quantidade) AS quantidade, SUM(preco) AS preco
-                    FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido, preco
+                    FROM pedidos WHERE comanda =? AND ordem = ? GROUP BY pedido, (preco/quantidade)
                 ''', fcomanda, ordem)
             emit('preco', {'preco_a_pagar': '', 'preco_total': '', 'preco_pago': '', 'dados': dados, 'nomes': '',
                            'comanda': fcomanda}, broadcast=True)
@@ -1129,8 +1129,6 @@ def getItemCardapio(data):
 
         print(dados)
         emit('respostaGetItemCardapio',{'opcoes':dados})
-        
-            
 
 
 if __name__ == '__main__':
