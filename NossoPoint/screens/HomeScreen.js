@@ -141,12 +141,27 @@ export default class HomeScreen extends React.Component {
   
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
+  verificarExistenciaPedidos(pedido){
+    console.log('entrou verifExisPedi')
+    console.log(pedido)
+    const pedidExist = this.state.dataFixo.filter(item=>item.pedido==pedido)
+    console.log(pedidExist)
+    if (pedidExist.length>0){
+    return true
+    }
+    else return false
+  }
+  
   sendData = () => {
     const pedido = this.state.pedido.trim()
+    if(this.verificarExistenciaPedidos(pedido)){
+      
     const comand = this.state.comand.trim()
     const { nome,nomeSelecionado, pedidosSelecionados, quantidadeSelecionada, extraSelecionados, quantidade, extra,opcoesSelecionadas, username,options,selecionados} = this.state;
     const currentTime = this.getCurrentTime();
     console.log(nomeSelecionado)
+    
+    
     if(!comand){
       alert("Digite a comanda");
     }
@@ -264,12 +279,17 @@ export default class HomeScreen extends React.Component {
 
         this.setState({ comand: '', pedido: '', quantidade: 1, extra: '',nome:'',showComandaPedido:false,showPedidoSelecionado:false,showPedido:false,selecionados:[],options:[],showQuantidade:false});
       }
+    
     })
     .catch(error => console.error('Erro ao adicionar pedido:', error));
     }
     else {
       console.warn('Por favor, preencha todos os campos.');
     }
+  }
+  else{
+    alert('Pedido Inexistente')
+  }
   };
 
 
@@ -284,27 +304,42 @@ export default class HomeScreen extends React.Component {
     }
   };
 
-  selecionarPedido = (pedido) => {
+  selecionarPedido = (pedid,id) => {
+    const pedido = pedid.trim()
     console.log(pedido)
     this.setState({ pedido, pedido_filtrado: [], showQuantidade: true });
+    const pedidoRow = this.state.dataFixo.filter(item=>item.id==id)
+    if (pedidoRow.length>0 && pedidoRow[0].opcoes){
+      console.log('entrei pedidorow')
+      const opcoesStr=pedidoRow[0].opcoes;
+      let palavra = '';
+      let selecionaveis = [];
+      let dados = [];
+      let nomeSelecionavel = '';
     
-    fetch(`${API_URL}/opcoes`,{
-      method: 'POST',
-      headers:{
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        pedido:pedido,
-      })
-      
-    }).then(response=>response.json())
-    .then(dados=>{
-      console.log(dados)
-      if(dados){
-      this.setState({options:dados.options})
+      for (let i = 0; i < opcoesStr.length; i++) {
+        const char = opcoesStr[i];
+    
+        if (char === '(') {
+          nomeSelecionavel = palavra;
+          palavra = '';
+        } else if (char === '-') {
+          selecionaveis.push(palavra);
+          palavra = '';
+        } else if (char === ')') {
+          selecionaveis.push(palavra);
+          dados.push({ [nomeSelecionavel]: selecionaveis });
+          selecionaveis = [];
+          palavra = '';
+        } else {
+          palavra += char;
+        }
       }
-    })
-  };
+      this.setState({options :dados})
+    }
+    
+
+    };
   selecionarComandaPedido =(comand) =>{
     this.setState({ comand, comanda_filtrada: [], showComandaPedido:false})
   }
@@ -476,7 +511,7 @@ export default class HomeScreen extends React.Component {
                 style={styles.pedidoSelecionadoItem}
                 onPress={() => {
                   Keyboard.dismiss();
-                  this.selecionarPedido(item.item);
+                  this.selecionarPedido(item.item,item.id);
                 }}
               >
                 <Text style={styles.pedidoText}>{item.item}</Text>
