@@ -21,7 +21,7 @@ export default class HomeScreen extends React.Component {
       dataFixo:[],
       pedido_filtrado: [],
       comanda_filtrada:[],
-      comanda_filtrada_abrir:[],
+      comandaGeral:[],
       quantidadeSelecionada: [],
       pedidosSelecionados: [],
       extraSelecionados: [],
@@ -54,13 +54,17 @@ export default class HomeScreen extends React.Component {
       console.log('entrei get cardapio',data);
       this.setState({pedido_filtrado:data.dataCardapio,dataFixo:data.dataCardapio})
     })
+    this.socket.emit('getComandas',false)
+    this.socket.on('respostaComandas',(data)=>{
+      if (data.dados_comandaAberta){
+        this.setState({comanda_filtrada:data.dados_comandaAberta,comandaGeral:data.dados_comandaAberta})
+      }
+    })
     
     
     
     this.socket.on('error', ({ message }) => console.error('Erro do servidor:', message));
-  
-    this.socket.on('comandas',(res)=> this.setState({ comanda_filtrada: res }))
-    
+      
     
     this.socket.on('alerta_restantes', (data) => {
       this.setState({ quantidadeRestanteMensagem: data.quantidade, pedidoRestanteMensagem: data.item });
@@ -103,14 +107,12 @@ export default class HomeScreen extends React.Component {
   
   changeComanda = (comand) => {
     const comandaLower = String(comand).toLowerCase();
-    this.setState({ 
+    const comanda_filtrada = this.state.comandaGeral.filter(item=>item.comanda.startsWith(comandaLower))
+    this.setState({
+      comanda_filtrada:comanda_filtrada,
       comand: comandaLower, 
       showComandaPedido: !!comand 
     });
-  
-    if (comand) {
-      this.socket.emit('pesquisa_comanda', { comanda: comandaLower });
-    }
   };
   
 
@@ -459,9 +461,9 @@ export default class HomeScreen extends React.Component {
               <TouchableOpacity
                 key={index}
                 style={styles.comandaItem}
-                onPress={() => this.selecionarComandaPedido(item)}
+                onPress={() => this.selecionarComandaPedido(item.comanda)}
               >
-                <Text style={styles.comandaText}>{item}</Text>
+                <Text style={styles.comandaText}>{item.comanda}</Text>
               </TouchableOpacity>
             ))}
 
