@@ -23,7 +23,7 @@ subprocess.run(['python', 'manipule.py'])
 
 
 
-var = True
+var = False
 
 
 # Inicialização do app Flask e SocketIO
@@ -526,7 +526,7 @@ def faturamento():
     faturamento = faturament[0]['faturamento'] if faturament else '0'
     caixinha = faturament[0]['caixinha'] if faturament[0]['caixinha'] else '0'
     faturamento_prev = db.execute(
-        "SELECT SUM (preco) AS valor_previsto FROM pedidos")
+        "SELECT SUM (preco) AS valor_previsto FROM pedidos WHERE pedido != ?",'CAIXINHA')
     faturamento_previsto = faturamento_prev[0]['valor_previsto'] if faturamento_prev[0]['valor_previsto'] else '0'
     drinks = db.execute(
         "SELECT SUM(quantidade) AS totaldrink,SUM(preco)as preco_drinks FROM pedidos WHERE categoria =?", 2)
@@ -575,6 +575,7 @@ def alterarValor(data):
         if categoria == "Caixinha":
             db.execute(
                 'UPDATE pagamentos SET caixinha = caixinha + ? WHERE dia = ?', valor, dia)
+            db.execute("INSERT INTO pedidos (pedido,quantidade,preco,comanda,ordem) VALUES (?,?,?,?,?)", "CAIXINHA", 1, valor, comanda, 0)
         else:
             db.execute(
                 "INSERT INTO pedidos (pedido,quantidade,preco,comanda,ordem) VALUES (?,?,?,?,?)", "DESCONTO", 1, valor*-1, comanda, 0)
@@ -686,9 +687,11 @@ def handle_delete_comanda(data):
         else:
             comanda = data.get('fcomanda')
             valor_pago = float(data.get('valor_pago'))
+            caixinha = float(data.get('caixinha'))
             dia = datetime.now(brazil).date()
             print(f'Data de hoje: {dia}')
-
+            if caixinha:
+                db.execute("UPDATE pagamentos SET caixinha = caixinha + ? WHERE dia = ?",caixinha,dia)
             # Verificar se já existe um pagamento registrado para o dia
             valor_do_dia = db.execute(
                 # Adicionando tupla para os parâmetros
@@ -715,7 +718,7 @@ def handle_delete_comanda(data):
         # Atualizar a ordem da comanda
         db.execute('UPDATE pedidos SET ordem = ordem +? WHERE comanda = ?',
                    1, comanda)
-
+        faturamento()
         handle_get_cardapio(comanda)
         emit('comanda_deleted', {'fcomanda': comanda}, broadcast=True)
 

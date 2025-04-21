@@ -144,7 +144,7 @@ export default class HomeScreen extends React.Component {
   verificarExistenciaPedidos(pedido){
     console.log('entrou verifExisPedi')
     console.log(pedido)
-    const pedidExist = this.state.dataFixo.filter(item=>item.pedido==pedido)
+    const pedidExist = this.state.dataFixo.filter(item=>item.item==pedido)
     console.log(pedidExist)
     if (pedidExist.length>0){
     return true
@@ -310,7 +310,6 @@ export default class HomeScreen extends React.Component {
     this.setState({ pedido, pedido_filtrado: [], showQuantidade: true });
     const pedidoRow = this.state.dataFixo.filter(item=>item.id==id)
     if (pedidoRow.length>0 && pedidoRow[0].opcoes){
-      console.log('entrei pedidorow')
       const opcoesStr=pedidoRow[0].opcoes;
       let palavra = '';
       let selecionaveis = [];
