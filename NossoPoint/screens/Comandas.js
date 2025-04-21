@@ -24,7 +24,7 @@ export default class VerComandas extends React.Component {
     this.socket.emit('getComandas',false)
     this.socket.on('respostaComandas', (dados) => {
       this.setState({
-        dataGeralAberto: dados.comandaAberta,
+        dataGeralAberto: dados.dados_comandaAberta,
         dataGeralFechado: dados.dados_comandaFechada,
         dataAberto: dados.dados_comandaAberta,
         dataFechado: dados.dados_comandaFechada,
@@ -61,7 +61,7 @@ export default class VerComandas extends React.Component {
   };
 
   searchcomanda = (comandas) => {
-    if (comandas && (this.state.dataGeralAberto || this.state.dataGeralFechado)) {
+    if (comandas && (!!this.state.dataGeralAberto || !!this.state.dataGeralFechado)) {
       const data_filtradoAberto = this.state.dataGeralAberto.filter((item) => item.comanda.startsWith(comandas.toLowerCase()));
       const data_filtradoFechado = this.state.dataGeralFechado.filter((item) => item.comanda.startsWith(comandas.toLowerCase()));
       this.setState({ comandas, dataAberto: data_filtradoAberto, dataFechado: data_filtradoFechado });
