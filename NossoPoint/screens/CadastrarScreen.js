@@ -1,7 +1,7 @@
 import React from "react";
 import { KeyboardAvoidingView,View,Text,TextInput,Button,StyleSheet,TouchableOpacity} from "react-native";
 import { API_URL } from "./url";
-import { Picker } from "@react-native-picker/picker";
+import { Picker } from "@react-native-picker/picker"
 import io from 'socket.io-client';
  
 
@@ -52,7 +52,7 @@ export default class Cadastro extends React.Component{
     render() {
 
       const cargos = ['Colaborador', 'ADM', 'Entregador', 'Cozinha']
-      
+      const {cargo} = this.state
         return (
           <View style={styles.container}>
             <Text style={styles.title}>Cadastro</Text>
@@ -63,18 +63,16 @@ export default class Cadastro extends React.Component{
               value={this.state.username}
               onChangeText={(username) => this.setState({ username })}
             />
-            <Picker
-          selectedValue={this.state.cargo}
-          onValueChange={(value) => this.setState({ cargo: value })}
+              <Picker
+          selectedValue={cargo}
+          onValueChange={value => this.setState({ cargo: value })}
           style={styles.picker}
         >
-          {/* “Placeholder” */}
-          <Picker.Item label="Selecionar Cargo" value="" />
-          {/* Opções */}
-          <Picker.Item label="Colaborador" value="Colaborador" />
-          <Picker.Item label="ADM" value="ADM" />
-          <Picker.Item label="Entregador" value="Entregador" />
-          <Picker.Item label="Cozinha" value="Cozinha" />
+          {cargos
+          .map(item => (
+              <Picker.Item key={item} label={item} value={item} />
+            ))
+          }
         </Picker>
             <TextInput
             style={styles.input}
@@ -129,7 +127,13 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
     },
     picker: {
-      height: 50,
-      width: '100%',
-    },
+      height: 50,            // deixa uma altura visível
+      width: 250,            // ou '100%' se quiser ocupar toda a largura do pai
+      color: '#000',         // cor do texto
+      backgroundColor: '#fff', // fundo branco garante contraste
+      borderWidth: 1,
+      borderColor: '#ccc',
+      marginVertical: 10,
+    }
+    
   });  
