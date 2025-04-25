@@ -3,8 +3,10 @@ import { View,Modal, FlatList,TouchableOpacity, Text, StyleSheet, Button, TextIn
 import io from 'socket.io-client';
 import { API_URL } from "./url";
 import { ScrollView } from 'react-native-gesture-handler';
+import { UserContext } from '../UserContext';
 
 export default class EstoqueGeral extends React.Component {
+  static contextType = UserContext;
   constructor(props) {
     super(props);
     this.state = {
@@ -30,6 +32,7 @@ export default class EstoqueGeral extends React.Component {
     this.refreshData = this.refreshData.bind(this);
   }
   componentDidMount() {
+    const {user}= this.context;
     this.socket = io(`${API_URL}`);
     this.refreshData();  // Carregar os dados ao montar o componente
   }
@@ -96,7 +99,8 @@ export default class EstoqueGeral extends React.Component {
 
   handleConfirmar = () => {
     const { itensAlterados } = this.state;
-    this.socket.emit('atualizar_estoque_geral', { itensAlterados });
+    const {user}=this.context;
+    this.socket.emit('atualizar_estoque_geral', { itensAlterados,username:user.username });
     this.setState({ showEditar: false, itensAlterados: [] });
   };
 
@@ -119,9 +123,10 @@ export default class EstoqueGeral extends React.Component {
 
   Enviar=()=>{
     const {titleEnv,AdicionarItem,AdicionarNovoNome,AdicionarQuantidade,AdicionarEstoqueIdeal} = this.state
+    const {user}=this.context;
     console.log("titleEnviar: ",titleEnv)
     if(AdicionarItem){
-    this.socket.emit("EditingEstoque",{item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade,estoqueIdeal:AdicionarEstoqueIdeal,tipo:titleEnv,estoque:'estoque_geral'})
+    this.socket.emit("EditingEstoque",{item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade,estoqueIdeal:AdicionarEstoqueIdeal,tipo:titleEnv,estoque:'estoque_geral',username:user.username})
     this.setState({AdicionarEstoqueIdeal:'', AdicionarNovoNome:'',AdicionarQuantidade:'', AdicionarItem:''})
   }
     else alert("Item nao identificado");

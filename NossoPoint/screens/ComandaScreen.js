@@ -2,11 +2,11 @@ import React from 'react';
 import { FlatList,ScrollView,Modal, View, Text, StyleSheet, Button, TextInput, TouchableOpacity, KeyboardAvoidingView, Pressable} from 'react-native';
 import io from 'socket.io-client';
 import { API_URL } from "./url";
+import { UserContext } from '../UserContext';
 
 
 class ComandaScreen extends React.Component {
-  
-
+  static contextType = {UserContext}
   constructor(props) {
     super(props);
     const { data, fcomanda, preco,preco_total,preco_pago,username,nomes,ordem} = this.props.route.params;
@@ -38,6 +38,7 @@ class ComandaScreen extends React.Component {
   }
 
   componentDidMount() {
+    
     console.log(this.state.nomes)
     console.log(this.state.fcomanda)
    
@@ -221,7 +222,8 @@ class ComandaScreen extends React.Component {
   
   confirmar = () => {
     const { itensAlterados, fcomanda} = this.state;
-    this.socket.emit('atualizar_comanda', { itensAlterados:itensAlterados, comanda:fcomanda });
+    const {user} = this.context;
+    this.socket.emit('atualizar_comanda', { itensAlterados:itensAlterados, comanda:fcomanda,username:user.username });
     this.setState({ showBotoes: false, itensAlterados: [] });
   };
   

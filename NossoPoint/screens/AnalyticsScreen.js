@@ -33,7 +33,6 @@ export default class Analytics extends React.Component {
     this.socket.on('faturamento_enviar', (data)=>{
       if (data) {
         this.setState({ faturamento: data.faturamento, dia: data.dia,faturamento_previsto:data.faturamento_previsto,drink:data.drink,porcao:data.porcao, restante:data.restante,pedidos:data.pedidos,imagemBase64:data.grafico,caixinha:data.caixinha})
-        console.log("tamanho", data.grafico.length);
         console.log("caixinha", data.caixinha)
       }}
     )

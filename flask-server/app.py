@@ -19,12 +19,11 @@ from io import BytesIO
 import logging
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 import subprocess
-subprocess.run(['python', 'manipule.py'])
 
 
 
-var = True
-
+var = False
+if var: subprocess.run(['python', 'manipule.py'])
 
 # Inicialização do app Flask e SocketIO
 app = Flask(__name__)
@@ -313,25 +312,39 @@ def editEstoque(data):
     quantidade = data.get('quantidade')
     estoque_ideal = data.get('estoqueIdeal')
     estoque = data.get('estoque')
+    usuario = data.get('username')
     print("item", tipo)
     print("item", item)
     print("item", quantidade)
     print("item", estoque_ideal)
     print("estoque", estoque)
+    alteracao = f'{item}'
     if not item: emit(f'{estoque}Alterado', {'erro':'Item nao identificado'})
     if tipo == 'Adicionar':
+        tipo = 'Adicionou'
         print("Entrou no adicionar")                                            
         if db.execute(f'SELECT item FROM {estoque} WHERE item = ?',item): emit(f'{estoque}Alterado',{'erro':'Nome Igual'})
         db.execute(f"INSERT INTO {estoque} (item,quantidade,estoque_ideal) VALUES (?,?,?)",item,quantidade,estoque_ideal)
     elif tipo == 'Remover':
+        tipo='Removeu'
         db.execute(f"DELETE FROM {estoque} WHERE item=?",item)
     else:
-        if estoque_ideal and novoNome:
+        alteracao+=': alterou'
+        tipo='Editou'
+        antigo = db.execute(f'SELECT estoque_ideal FROM {estoque} WHERE item = ?',item)
+        antig = 'inexistente' if not antigo else antigo[0]['estoque_ideal']
+        if estoque_ideal and novoNome:    
+            alteracao += f' estoque ideal de {antig} para {estoque_ideal} e {item} para {novoNome}'
+            
             db.execute(f"UPDATE {estoque} SET item=?, estoque_ideal=? WHERE item=?",novoNome, estoque_ideal,item )
         elif estoque_ideal:
+            alteracao+= f' estoque ideal de {antig} para {estoque_ideal}'
             db.execute(f"UPDATE {estoque} SET estoque_ideal=? WHERE item=?",estoque_ideal,item)
         elif novoNome:
+            alteracao+= f' Nome do {item} para {novoNome}'
             db.execute(f"UPDATE {estoque} SET item=? WHERE item=?",novoNome,item ) 
+
+    insertAlteracoesTable(estoque,alteracao,tipo,f'Botao + no Editar {estoque}',usuario)
 
     if estoque=='estoque_geral':
         getEstoqueGeral(True)
@@ -660,23 +673,6 @@ def desfazer_pagamento(data):
     handle_get_cardapio(comanda)
 
 
-@socketio.on('pesquisa_comanda')
-def pesquisa_comanda(data):
-    comanda = data.get('comanda')
-    comandas = db.execute(
-        'SELECT comanda FROM pedidos WHERE ordem = ? GROUP BY comanda', 0)
-    comandas_filtradas = []
-    cont = 0
-    for row in comandas:
-        if cont < 3:
-            pedido = row['comanda']
-            if pedido.startswith(comanda):
-                cont += 1
-                comandas_filtradas.append(pedido)
-        else:
-            break
-    emit('comandas', comandas_filtradas)
-
 
 @socketio.on('delete_comanda')
 def handle_delete_comanda(data):
@@ -813,23 +809,35 @@ def inserir_preparo(data):
 
 @socketio.on('atualizar_estoque_geral')
 def atualizar_estoque_geral(data):
+    usuario = data.get('username')
     itensAlterados = data.get('itensAlterados')
     for i in itensAlterados:
         item = i['item']
         quantidade = i['quantidade']
+        quantidadeAnterior=db.execute("SELECT quantidade FROM estoque_geral WHERE item =?",item)
+        if quantidadeAnterior: anterior=quantidadeAnterior[0]['quantidade']
         db.execute('UPDATE estoque_geral SET quantidade = ? WHERE item = ?',
                    float(quantidade), item)
+        insertAlteracoesTable('estoque geral',f'{i['item']} de {int(anterior)} para {i['quantidade']}','editou','Editar Estoque Geral',usuario)
+        
     getEstoqueGeral(True)
 
 
 @socketio.on('atualizar_estoque')
 def atualizar_estoque(data):
+    usuario = data.get('username')
     itensAlterados = data.get('itensAlterados')
     for i in itensAlterados:
         item = i['item']
+        anterior=''
         quantidade = i['quantidade']
+        quantidadeAnterior=db.execute("SELECT quantidade FROM estoque WHERE item=?",item)
+        if quantidadeAnterior:anterior=quantidadeAnterior[0]['quantidade']
         db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',
                    float(quantidade), item)
+        insertAlteracoesTable('estoque carrinho',f'{i['item']} de {int(anterior)} para {i['quantidade']}','editou','Editar Estoque',usuario)
+        
+        
     getEstoque(True)
 
 
@@ -839,6 +847,7 @@ def atualizar__comanda(data):
     itensAlterados = data.get('itensAlterados')
     print(itensAlterados)
     comanda = data.get('comanda')
+    usuario = data.get('username')
     for i in itensAlterados:
 
         item = i['pedido']
@@ -857,6 +866,9 @@ def atualizar__comanda(data):
             if verifEstoq:
                 db.execute(
                     'UPDATE estoque SET quantidade = quantidade + ? WHERE item = ?', quantidade_total, item)
+                
+                insertAlteracoesTable('estoque carrinho',f'{i['pedido']} {i['quantidade']}','editou','Editar Comanda',usuario)
+
 
             db.execute(
                 'DELETE FROM pedidos WHERE pedido = ? AND comanda = ? AND ordem = ?', item, comanda, 0)
@@ -884,6 +896,7 @@ def atualizar__comanda(data):
                 if verifEstoq:
                     db.execute(
                         'UPDATE estoque SET quantidade = quantidade + ? WHERE item = ?', quantidade_atualizada, item)
+                    insertAlteracoesTable('estoque carrinho',f'{i['pedido']} {i['quantidade']}','editou','Editar Comanda',usuario)
                 for k in ids:
                     if quantidade_atualizada > 0:
                         print(f'quantidade atualizada {quantidade_atualizada}')
@@ -906,6 +919,7 @@ def atualizar__comanda(data):
                 if verifEstoq:
                     db.execute(
                         'UPDATE estoque SET quantidade = quantidade - ? WHERE item = ?', quantidade_atualizada, item)
+                    insertAlteracoesTable('estoque carrinho',f'{i['pedido']} {i['quantidade']}','editou','Editar Comanda',usuario)
 
             db.execute('''
                             DELETE FROM pedidos
@@ -1132,6 +1146,20 @@ def getItemCardapio(data):
 
         print(dados)
         emit('respostaGetItemCardapio',{'opcoes':dados})
+
+def insertAlteracoesTable(tabela,alteracao,tipo,tela,usuario):
+    hoje = datetime.now(brazil).date()
+    horario = datetime.now(pytz.timezone(
+        "America/Sao_Paulo")).strftime('%H:%M')
+    print(tabela,alteracao,tipo,usuario)
+    db.execute('INSERT INTO alteracoes (tabela,alteracao,tipo,usuario,tela,dia,horario) VALUES (?,?,?,?,?,?,?)',tabela,alteracao,tipo,usuario,tela,hoje,horario)
+    getAlteracoes(True)
+@socketio.on('getAlteracoes')
+def getAlteracoes(emitir):
+    print("Entrou GEtalteracoes")
+    data=db.execute("SELECT * FROM alteracoes")
+    emit('respostaAlteracoes', {"alteracoes":data}, broadcast=emitir)
+
 
 
 if __name__ == '__main__':
