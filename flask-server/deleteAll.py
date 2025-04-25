@@ -2,4 +2,6 @@ from cs50 import SQL
 
 db=SQL('sqlite:///data/dados.db')
 
-print(db.execute('SELECT * FROM estoque_geral'))
+db.execute('CREATE TABLE alteracoes (tabela TEXT, alteracao TEXT, tipo TEXT, usuario TEXT, tela TEXT, dia TEXT, horario TEXT)')
+
+print(db.execute('SELECT * FROM alteracoes'))
