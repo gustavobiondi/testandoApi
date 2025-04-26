@@ -2,8 +2,10 @@ import React from 'react';
 import { View, FlatList, Text, StyleSheet, TextInput, Modal, TouchableOpacity, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 import { API_URL } from "./url";
+import { UserContext } from '../UserContext';
 
 export default class PedidosScreen extends React.Component {
+  static contextType = UserContext;
   constructor(props) {
     super(props);
     this.state = {
@@ -53,7 +55,8 @@ export default class PedidosScreen extends React.Component {
   };
 
   handleConfirmar = () => {
-    this.socket.emit('atualizar_pedidos', { pedidoAlterado: this.state.pedidoModal });
+    const {user}=this.context;
+    this.socket.emit('atualizar_pedidos', { pedidoAlterado: this.state.pedidoModal,usuario:user.username });
     this.setState({ editable: false, pedidoModal: {}, showModal: false });
   };
 
