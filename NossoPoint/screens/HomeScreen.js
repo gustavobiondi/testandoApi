@@ -40,7 +40,7 @@ export default class HomeScreen extends React.Component {
     };
   }
 
-  componentDidMount() {
+  componentDidMount() { 
       const { user } = this.context;
         this.setState({ username: user.username });
         console.log(user.username);
@@ -142,6 +142,7 @@ export default class HomeScreen extends React.Component {
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
   verificarExistenciaPedidos(pedido){
+    if (!!pedido){
     console.log('entrou verifExisPedi')
     console.log(pedido)
     const pedidExist = this.state.dataFixo.filter(item=>item.item==pedido)
@@ -150,6 +151,8 @@ export default class HomeScreen extends React.Component {
     return true
     }
     else return false
+  }
+  else return true
   }
   
   sendData = () => {

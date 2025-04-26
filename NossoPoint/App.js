@@ -11,7 +11,7 @@ import ComandaScreen from './screens/ComandaScreen.js';
 import EstoqueScreen from './screens/EstoqueScreen.js';
 import EstoqueGeral from './screens/EstoqueGeral.js'; 
 import Login from './screens/LoginScreen.js';
-import ChoseUser from './screens/ChoseUser.js';
+import ChoseUser from './screens/ChoseUser.js'; 
 import { UserContext, UserProvider } from './UserContext.js'; // Import UserProvider and context
 import PedidosScreen from './screens/PedidosScreen.js';
 import Analytics from './screens/AnalyticsScreen.js';
@@ -20,11 +20,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import verComandas from './screens/Comandas.js';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ScreenCardapio from './screens/Cardapio.js';
+import coWorksScreen from './screens/coWorksScreen.js';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
+const TabTop = createMaterialTopTabNavigator();
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
 
 // Stack Navigator para as telas relacionadas à Home (incluindo a ComandaScreen)
 function HomeStack() {
@@ -54,6 +58,31 @@ function HomeStack() {
     </Tab.Navigator>
   );
 }
+
+function analytcsStack(){
+  return (
+    <TabTop.Navigator initialRouteName="Analytics">
+      <TabTop.Screen  
+        name='Analytics'
+        component={Analytics}
+        options={{
+          headerShown: false
+  }}
+      />
+
+      <TabTop.Screen
+      name='Analise da equipe'
+      component={coWorksScreen}
+      options={{
+        headerShown: false
+      }
+      }
+      />
+    </TabTop.Navigator>
+  );
+}
+
+
 
 function Comanda() {
     return (
@@ -85,7 +114,7 @@ function AuthNavigator() {
             <Drawer.Screen name="Cardapio" component={ScreenCardapio}/>
             <Drawer.Screen name="Estoque Carrinho" component={EstoqueScreen} />
             <Drawer.Screen name="Estoque Geral" component={EstoqueGeral} />
-            <Drawer.Screen name="Analytics" component={Analytics} />
+            <Drawer.Screen name="AnalyticsStack" component={analytcsStack} />
             <Drawer.Screen name="Users" component={ChoseUser} />
             <Drawer.Screen name="Cadastrar" component={Cadastro} />
     

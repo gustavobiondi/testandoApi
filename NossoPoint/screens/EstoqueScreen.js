@@ -2,8 +2,10 @@ import React from 'react';
 import { View, FlatList,TouchableOpacity,Modal,ScrollView,Text, StyleSheet, Button, TextInput, RefreshControl } from 'react-native';
 import io from 'socket.io-client';
 import { API_URL } from "./url";
+import { UserContext } from '../UserContext';
 
 export default class EstoqueScreen extends React.Component {
+  static contextType = UserContext;
   constructor(props) {
     super(props);
     this.state = {
@@ -29,6 +31,8 @@ export default class EstoqueScreen extends React.Component {
   }
 
   componentDidMount() {
+    const {user} = this.context
+
     this.socket = io(`${API_URL}`);
     this.refreshData();  // Carregar os dados ao montar o componente
   }
@@ -94,7 +98,8 @@ export default class EstoqueScreen extends React.Component {
 
   handleConfirmar = () => {
     const { itensAlterados } = this.state;
-    this.socket.emit('atualizar_estoque', { itensAlterados });
+    const {user} = this.context
+    this.socket.emit('atualizar_estoque', { itensAlterados,username:user.username });
     this.setState({ showEditar: false, itensAlterados: [] });
   };
 
@@ -116,8 +121,9 @@ export default class EstoqueScreen extends React.Component {
   }; 
   Enviar =()=>{
 const {AdicionarItem, AdicionarEstoqueIdeal,AdicionarQuantidade,titleEnv,AdicionarNovoNome}=this.state;
+const {user} =  this.context
 if (AdicionarItem){
-this.socket.emit('EditingEstoque', {tipo:titleEnv,item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade, estoqueIdeal:AdicionarEstoqueIdeal,estoque:'estoque'});
+this.socket.emit('EditingEstoque', {tipo:titleEnv,item:AdicionarItem,novoNome:AdicionarNovoNome,quantidade:AdicionarQuantidade, estoqueIdeal:AdicionarEstoqueIdeal,estoque:'estoque',username:user.username});
 this.setState({AdicionarItem:'',AdicionarNovoNome:'',AdicionarEstoqueIdeal:'',AdicionarQuantidade:''});
 }
 else alert("Item nao identificado")

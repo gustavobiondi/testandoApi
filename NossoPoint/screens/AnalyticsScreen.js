@@ -5,6 +5,7 @@ import { API_URL } from "./url";
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { TouchableOpacity } from 'react-native';
 import io from 'socket.io-client';
+import { Button } from "react-native-web";
 
 export default class Analytics extends React.Component {
   static contextType = UserContext;
@@ -24,32 +25,38 @@ export default class Analytics extends React.Component {
       restante:"",
       imagemBase64:null,
       caixinha:"",
+      change:0,
     };
     };
 
   componentDidMount() {
     this.socket = io(`${API_URL}`);
-
+    this.initializeData()
     this.socket.on('faturamento_enviar', (data)=>{
       if (data) {
         this.setState({ faturamento: data.faturamento, dia: data.dia,faturamento_previsto:data.faturamento_previsto,drink:data.drink,porcao:data.porcao, restante:data.restante,pedidos:data.pedidos,imagemBase64:data.grafico,caixinha:data.caixinha})
-        console.log("tamanho", data.grafico.length);
         console.log("caixinha", data.caixinha)
       }}
     )
 
-    this.initializeData()
+    
     
   }
   initializeData = ()=> {
-    this.socket.emit('faturamento')
+    this.socket.emit('faturamento',false)
   }
   
+  mudarDia = (change) =>{
+    if (change <= 0){
+    this.socket.emit('faturamento',{emitir:false,change:change})
+    this.setState({change})
+    }
+  }
 
   // Função para buscar o faturamento do backend
   
   render() {
-    const { faturamento, dia, refreshing,faturamento_previsto,drink,porcao,pedidos,restante,caixinha } = this.state;
+    const { faturamento, change,dia, refreshing,faturamento_previsto,drink,porcao,pedidos,restante,caixinha } = this.state;
   
     return (
       <ScrollView
@@ -65,7 +72,10 @@ export default class Analytics extends React.Component {
           <View style={styles.dateBox}>
             <TouchableOpacity onPress={this.abrirCalendario} style={styles.dateButton}>
             <Icon name="calendar" size={18} color="#333" style={styles.dateIcon} />
+            <Button title="<" onPress={()=>this.mudarDia(change-1)}/>
               <Text style={styles.dateText}>Dia {dia}</Text>
+            {change!==0 && (
+            <Button title=">" onPress={()=>this.mudarDia(change+1)}/>)}
             </TouchableOpacity>
             <Text style={styles.valorText}>Faturamento = R$ {faturamento}</Text>
             <Text style={styles.valorText}>Faturamento Previsto = R$ {faturamento_previsto}</Text>
