@@ -2,6 +2,7 @@ import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button,RefreshControl,Modal,TouchableOpacity } from 'react-native';
 import io from 'socket.io-client';
 import { API_URL } from "./url";
+import notifee from "@notifee/react-native" 
 
 export default class BarmanScreen extends React.Component {
   constructor(props) {
@@ -22,10 +23,21 @@ export default class BarmanScreen extends React.Component {
 
   componentDidMount() {
     this.socket = io(`${API_URL}`);
-
+    const handleDisplayNottification =  async ()=>{
+      //create channel
+    const channelId =  await notifee.createChannel({
+      id:'default-V2',
+      name:'Default Channel',
+      sound:'default',
+      importance: notifee.AndroidImportance.HIGH
+      
+    });
+    //display notification
+    }
+    handleDisplayNottification()
     // Ouvir eventos de dados iniciais
     this.socket.emit('getPedidos',false)
-    this.socket.on('respostaPedidos', (dados) => {
+    this.socket.on('respostaPedidos', async (dados) => {
       console.log(dados)
       if(dados.dataPedidos){
       const data_temp = dados.dataPedidos.filter(item => item.categoria === '2');
@@ -33,8 +45,18 @@ export default class BarmanScreen extends React.Component {
 
       const data_temp_filtrado = data_temp.filter(item => item.estado !== "Pronto");
       this.setState({ data_filtrado: data_temp_filtrado });
-
-    
+      
+      await notifee.displayNotification({
+        title:'Hello',
+        body:'local notification',
+        android:{
+         channelId:'default',
+         importance: notifee.AndroidImportance.HIGH,
+         pressAction:{
+          id:'default',
+         }
+        }
+      })
     }
   })
     this.socket.on('ingrediente', ({data}) => {
