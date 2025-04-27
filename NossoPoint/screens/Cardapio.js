@@ -13,6 +13,7 @@ import {
 import io from 'socket.io-client';
 import { API_URL } from './url';
 import { style } from 'twrnc';
+import { UserContext } from '../UserContext';
 
 export default class ScreenCardapio extends React.Component {
  get defaultOpcoes(){
@@ -22,7 +23,8 @@ export default class ScreenCardapio extends React.Component {
       conteudo: ['']
     }
   ];
-}
+} 
+  static contextType = UserContext
   constructor(props) {
     super(props);
     this.state = {
@@ -129,15 +131,16 @@ export default class ScreenCardapio extends React.Component {
   };
   Enviar = () =>{
     const {categoria,modalidade,AdicionarItem,AdicionarPreco,opcoes,titleEnv,AdicionarNovoNome}=this.state
+    const {user} =  this.context
     console.log(this.state.opcoes)
     if(titleEnv==='Adicionar'){
-    this.socket.emit('adicionarCardapio',{categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco,opcoes:opcoes})
+    this.socket.emit('adicionarCardapio',{categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco,opcoes:opcoes,username:user.username})
     }
     else if(titleEnv==='Editar'){
-      this.socket.emit('editarCardapio',{categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco,novoNome:AdicionarNovoNome,opcoes:opcoes})
+      this.socket.emit('editarCardapio',{categoria,modalidade,item:AdicionarItem, preco:AdicionarPreco,novoNome:AdicionarNovoNome,opcoes:opcoes,username:user.username})
     }
     else if (titleEnv==='Remover'){
-      this.socket.emit('removerCardapio',{item:AdicionarItem})
+      this.socket.emit('removerCardapio',{item:AdicionarItem,username:user.username})
     }
     this.setState({categoria:'',modalidade:'', AdicionarItem:'',  AdicionarPreco:'', frutas:'', tamanho:'', instrucao:'', adicionais:'', AdicionarNovoNome:''})
   }

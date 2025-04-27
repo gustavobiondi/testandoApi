@@ -22,8 +22,8 @@ import subprocess
 
 
 
-var = False
-if var: subprocess.run(['python', 'manipule.py'])
+var = True
+if var: subprocess.run(['python', 'deleteAll.py'])
 
 # Inicialização do app Flask e SocketIO
 app = Flask(__name__)
@@ -322,6 +322,8 @@ def editEstoque(data):
     if not item: emit(f'{estoque}Alterado', {'erro':'Item nao identificado'})
     if tipo == 'Adicionar':
         tipo = 'Adicionou'
+        if estoque_ideal:
+            alteracao+=f' com estoque ideal de {estoque_ideal}'
         print("Entrou no adicionar")                                            
         if db.execute(f'SELECT item FROM {estoque} WHERE item = ?',item): emit(f'{estoque}Alterado',{'erro':'Nome Igual'})
         db.execute(f"INSERT INTO {estoque} (item,quantidade,estoque_ideal) VALUES (?,?,?)",item,quantidade,estoque_ideal)
@@ -333,12 +335,15 @@ def editEstoque(data):
         tipo='Editou'
         antigo = db.execute(f'SELECT estoque_ideal FROM {estoque} WHERE item = ?',item)
         antig = 'inexistente' if not antigo else antigo[0]['estoque_ideal']
-        if estoque_ideal and novoNome:    
-            alteracao += f' estoque ideal de {antig} para {estoque_ideal} e {item} para {novoNome}'
+        if estoque_ideal and novoNome:
+            if type(antig)!=str and int(estoque_ideal) != antig:
+                alteracao += f' estoque ideal de {int(antig)} para {float(estoque_ideal)} e {item} para {novoNome}'
+            else: alteracao+=f' {item} para {novoNome}'
             
             db.execute(f"UPDATE {estoque} SET item=?, estoque_ideal=? WHERE item=?",novoNome, estoque_ideal,item )
         elif estoque_ideal:
-            alteracao+= f' estoque ideal de {antig} para {estoque_ideal}'
+            if type(antig)!=str and int(estoque_ideal) != antig:
+                alteracao+= f' estoque ideal de {int(antig)} para {estoque_ideal}'
             db.execute(f"UPDATE {estoque} SET estoque_ideal=? WHERE item=?",estoque_ideal,item)
         elif novoNome:
             alteracao+= f' Nome do {item} para {novoNome}'
@@ -459,6 +464,8 @@ def handle_insert_order(data):
                 'SELECT preco,categoria_id FROM cardapio WHERE item = ?', pedido)
             if preco_unitario:
                 categoria = preco_unitario[0]['categoria_id']
+                if categoria==2 and extra[i]:
+                    emit('NotificacaoPedido', {'pedido':pedido,'comanda':comanda,'extra':extra[i],"quantidade":quantidade})
                 print('if')
             else:
                 categoria = '4'
@@ -673,7 +680,7 @@ def handle_atualizar_pedidos(data):
         print(alteracoes)
         db.execute("UPDATE pedidos SET comanda = ?, pedido = ?, quantidade = ?, extra = ?,preco = ? WHERE id = ?",
                p['comanda'], p['pedido'], p['quantidade'], p['extra'], p['preco'], p['id'])
-    insertAlteracoesTable('pedidos',alteracoes,'editou','pedidosScreen',usuario)
+    insertAlteracoesTable('pedidos',alteracoes,'editou','Tela Pedidos',usuario)
     handle_get_cardapio(str(p['comanda']))
 
 
@@ -1070,9 +1077,11 @@ def adicionarCardapio(data):
     item = data.get('item')
     preco = data.get('preco')
     categoria = data.get('categoria')
+    usuario = data.get('username')
     if not item or not preco or not categoria:
         emit('Erro',{'Alguma categoria faltando'})
     else:
+        alteracoes = f'item: {item} preco: {preco} categoria: {categoria}'
         if categoria != 'Restante':
             opcoes = data.get('opcoes')
             if categoria == 'Bebida':
@@ -1089,9 +1098,13 @@ def adicionarCardapio(data):
                     if i != len(row['conteudo'])-1:
                         opcoesFormatadas+='-'
                 opcoesFormatadas+=')'
+            if opcoesFormatadas:
+                alteracoes+=f' opcoes {opcoesFormatadas}'
             db.execute('INSERT INTO cardapio (item,categoria_id,preco,opcoes) VALUES(?,?,?,?)',item,categoria_id,float(preco),opcoesFormatadas)  
         else:
             db.execute('INSERT INTO cardapio (item,categoria_id,preco) VALUES (?,?,?)',item,1,float(preco))
+
+        insertAlteracoesTable('Cardapio',alteracoes,'Adicionou','Tela Cardapio',usuario)
         getCardapio(True)                 
 
 
@@ -1103,7 +1116,15 @@ def editarCardapio(data):
     categoria = data.get('categoria')
     novoNome = data.get('novoNome')
     opcoes = data.get('opcoes')
+    usuario = data.get('username')
+    
+    
+    
+
+
     if item and preco and categoria:
+        alteracoes = f'{item}, '
+        dadoAntigo = db.execute('SELECT * FROM cardapio WHERE item = ?',item)[0]
         if categoria == 'Restante':
             categoria_id = 1
         elif categoria =='Porção':
@@ -1111,8 +1132,8 @@ def editarCardapio(data):
         elif categoria == 'Bebida':
             categoria_id = 2
         opcoesFormatadas = ''
-        if opcoes:
         
+        if opcoes:
             for row in opcoes:
                 opcoesFormatadas+=row['titulo']
                 print (opcoesFormatadas)
@@ -1130,6 +1151,16 @@ def editarCardapio(data):
             db.execute("UPDATE cardapio SET item =?,preco=?,categoria_id=? WHERE item = ?",novoNome,preco,categoria_id,item)
         else:
             db.execute("UPDATE cardapio SET preco=?,categoria_id=? WHERE item = ?",preco,categoria_id,item)
+        
+        dadoAtualizado = db.execute('SELECT * FROM cardapio WHERE item = ?',novoNome)[0] if novoNome else db.execute('SELECT * FROM cardapio WHERE item = ?',item)[0]
+        
+        dif={k:(dadoAtualizado[k],dadoAntigo[k]) for k in dadoAtualizado.keys() & dadoAntigo.keys() if dadoAtualizado[k]!=dadoAntigo[k]}.keys()
+        for key in dif:
+            alteracoes+=f'{key} de {dadoAntigo[key]} para {dadoAtualizado[key]} '
+        print(alteracoes)
+
+        insertAlteracoesTable('Cardapio',alteracoes,'Editou','Tela Cardapio',usuario)
+
         getCardapio(True)
 
             
@@ -1139,8 +1170,11 @@ def editarCardapio(data):
 @socketio.on('removerCardapio')
 def removerCardapio(data):
     item=data.get('item')
+    usuario = data.get('username')
     print("Removendo item:", item)
     db.execute("DELETE FROM cardapio WHERE item=?",item)
+
+    insertAlteracoesTable('Cardapio',item,'Removeu','Tela Cardapio',usuario)
     getCardapio(True)
     
 

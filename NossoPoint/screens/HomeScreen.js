@@ -4,6 +4,7 @@ import io from 'socket.io-client';
 import { UserContext } from '../UserContext'; // Import the context
 import { API_URL } from "./url";
 import { Keyboard } from 'react-native';
+import notifee from "@notifee/react-native"
 
 export default class HomeScreen extends React.Component {
   static contextType = UserContext;
@@ -41,11 +42,28 @@ export default class HomeScreen extends React.Component {
   }
 
   componentDidMount() { 
-      const { user } = this.context;
+      const requestPermission = async () => {
+        await notifee.requestPermission()
+      }
+      requestPermission()
+
+       const handleDisplayNottification =  async ()=>{
+         //create channel
+       const channelId =  await notifee.createChannel({
+         id:'default-V2',
+         name:'Default Channel',
+         sound:'default',
+         importance: notifee.AndroidImportance.HIGH
+         
+       });
+       //display notification
+       }
+
+       handleDisplayNottification()
+
+       const { user } = this.context;
         this.setState({ username: user.username });
         console.log(user.username);
-       
-    
 
     this.socket = io(`${API_URL}`); // Se o backend estiver na
     
@@ -147,6 +165,7 @@ export default class HomeScreen extends React.Component {
     console.log(pedido)
     const pedidExist = this.state.dataFixo.filter(item=>item.item==pedido)
     console.log(pedidExist)
+    
     if (pedidExist.length>0){
     return true
     }
@@ -155,8 +174,9 @@ export default class HomeScreen extends React.Component {
   else return true
   }
   
-  sendData = () => {
+  sendData = async () => {
     const pedido = this.state.pedido.trim()
+    const {user} = this.context
     if(this.verificarExistenciaPedidos(pedido)){
       
     const comand = this.state.comand.trim()
