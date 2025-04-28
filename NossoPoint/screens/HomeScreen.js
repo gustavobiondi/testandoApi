@@ -5,6 +5,10 @@ import { UserContext } from '../UserContext'; // Import the context
 import { API_URL } from "./url";
 import { Keyboard } from 'react-native';
 import notifee from "@notifee/react-native"
+import { usePushNotifications } from '../usePushNotifications';
+
+
+
 
 export default class HomeScreen extends React.Component {
   static contextType = UserContext;
@@ -42,24 +46,8 @@ export default class HomeScreen extends React.Component {
   }
 
   componentDidMount() { 
-      const requestPermission = async () => {
-        await notifee.requestPermission()
-      }
-      requestPermission()
 
-       const handleDisplayNottification =  async ()=>{
-         //create channel
-       const channelId =  await notifee.createChannel({
-         id:'default-V2',
-         name:'Default Channel',
-         sound:'default',
-         importance: notifee.AndroidImportance.HIGH
-         
-       });
-       //display notification
-       }
-
-       handleDisplayNottification()
+   
 
        const { user } = this.context;
         this.setState({ username: user.username });
@@ -448,11 +436,16 @@ export default class HomeScreen extends React.Component {
     
   changeExtra = (extra) => this.setState({ extra });
   render() {
+
+    const {expoPushToken, notification} = usePushNotifications
+    const data = JSON.stringify(notification,undefined,2)
+
     return (
       <View style={styles.mainContainer}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.innerContainer}>
             <View style={styles.inputRow}>
+              <Text>token: {expoPushToken.data ?? ""}</Text>
               <TextInput
                 placeholder="Comanda"
                 onChangeText={this.changeComanda}
