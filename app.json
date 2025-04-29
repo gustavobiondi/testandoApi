@@ -27,7 +27,7 @@
     "android": {
       "package": "com.gbiondi.nossopoint",
       "googleServicesFile":"./android/app/google-services.json",
-      "adaptiveIcon": {
+      "adaptiveIcon": { 
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }

@@ -22,6 +22,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import ScreenCardapio from './screens/Cardapio.js';
 import coWorksScreen from './screens/coWorksScreen.js';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import TokenScreen from './screens/tokenscreen.js';
 
 const TabTop = createMaterialTopTabNavigator();
 
@@ -141,13 +142,5 @@ function AuthNavigator() {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function App() {
-  return (
-    <UserProvider>
-      <SafeAreaProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <AuthNavigator />
-        </GestureHandlerRootView>
-      </SafeAreaProvider>
-    </UserProvider>
-  );
+  return <TokenScreen />;
 }

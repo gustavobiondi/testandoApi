@@ -6,6 +6,7 @@ import { usePushNotifications } from './usePushNotifications'; // ajuste o camin
 export default function NotificacaoInfo() {
   const { expoPushToken, notification } = usePushNotifications();
   const token = typeof expoPushToken === 'string' ? expoPushToken : expoPushToken?.data ?? 'Sem token';
+  
   const data = JSON.stringify(notification, null, 2);
 
   return (

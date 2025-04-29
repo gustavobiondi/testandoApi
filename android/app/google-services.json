@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "281472108635",
-    "project_id": "nossopoint-b6d82",
-    "storage_bucket": "nossopoint-b6d82.firebasestorage.app"
+    "project_number": "643315113321",
+    "project_id": "notificationspoint-e93bd",
+    "storage_bucket": "notificationspoint-e93bd.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:281472108635:android:c57d0f89c67589ce82177e",
+        "mobilesdk_app_id": "1:643315113321:android:7194038224c3ca9dea71f8",
         "android_client_info": {
           "package_name": "com.gbiondi.nossopoint"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDi3IcwKp-bsD8lPm04S0ZtaclmlrIGgFg"
+          "current_key": "AIzaSyAGB1LQZ7_mxqiRS6kfbsPdEq0K-BqyLPM"
         }
       ],
       "services": {

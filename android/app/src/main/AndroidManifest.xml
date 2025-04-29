@@ -25,6 +25,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="com.gbiondi.nossopoint"/>
+        <data android:scheme="exp+testando-api"/>
       </intent-filter>
     </activity>
   </application>

@@ -37,7 +37,7 @@ export const usePushNotifications = () => {
       }
 
       token = await Notifications.getExpoPushTokenAsync({
-        projectId: '7e480f65-cc6b-476f-b57d-270e50206802',
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
       });
 
       if (Platform.OS === "android") {
@@ -49,7 +49,7 @@ export const usePushNotifications = () => {
         });
       }
 
-      return token;
+      return token.data;
     } else {
       console.error("ERROR: Use um dispositivo real, o simulador não funciona para push notifications.");
     }
