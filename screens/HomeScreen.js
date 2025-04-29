@@ -6,7 +6,7 @@ import { API_URL } from "./url";
 import { Keyboard } from 'react-native';
 import notifee from "@notifee/react-native"
 import { usePushNotifications } from '../usePushNotifications';
-
+import NotificacaoInfo from '../notificacaoInfo';
 
 
 
@@ -56,10 +56,15 @@ export default class HomeScreen extends React.Component {
     this.socket = io(`${API_URL}`); // Se o backend estiver na
     
     this.socket.emit('getCardapio',false);
-    this.socket.on('respostaCardapio',(data)=>{ 
-      console.log('entrei get cardapio',data);
-      this.setState({pedido_filtrado:data.dataCardapio,dataFixo:data.dataCardapio})
-    })
+    this.socket.on('respostaCardapio', (data) => {
+      console.log('entrei get cardapio', data);
+      if (data && data.dataCardapio) {
+        this.setState({ pedido_filtrado: data.dataCardapio, dataFixo: data.dataCardapio });
+      } else {
+        console.warn('Resposta de cardápio inválida:', data);
+      }
+    });
+    
     this.socket.emit('getComandas',false)
     this.socket.on('respostaComandas',(data)=>{
       if (data.dados_comandaAberta){
@@ -73,7 +78,9 @@ export default class HomeScreen extends React.Component {
       
     
     this.socket.on('alerta_restantes', (data) => {
+      if (data){
       this.setState({ quantidadeRestanteMensagem: data.quantidade, pedidoRestanteMensagem: data.item });
+      }
     });
     this.socket.on('quantidade_insuficiente', (data) => {
         if (data.erro) {
@@ -245,8 +252,9 @@ export default class HomeScreen extends React.Component {
     })
     .then(response => response.json())
     .then(data => {
-      console.log(data)
+      
       if (data.erro) {
+        console.log(data)
         this.setState({
           comand: '',
           pedido: '',
@@ -437,15 +445,14 @@ export default class HomeScreen extends React.Component {
   changeExtra = (extra) => this.setState({ extra });
   render() {
 
-    const {expoPushToken, notification} = usePushNotifications
-    const data = JSON.stringify(notification,undefined,2)
 
-    return (
-      <View style={styles.mainContainer}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <View style={styles.innerContainer}>
-            <View style={styles.inputRow}>
-              <Text>token: {expoPushToken.data ?? ""}</Text>
+  return (
+    <View style={styles.mainContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        <View style={styles.innerContainer}>
+          <View style={styles.inputRow}>
+          <NotificacaoInfo />
+
               <TextInput
                 placeholder="Comanda"
                 onChangeText={this.changeComanda}

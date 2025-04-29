@@ -23,7 +23,7 @@ import subprocess
 
 
 var = True
-if var: subprocess.run(['python', 'deleteAll.py'])
+
 
 # Inicialização do app Flask e SocketIO
 app = Flask(__name__)
@@ -669,7 +669,7 @@ def calcular_faturamento(data):
 def handle_atualizar_pedidos(data):
     p = data.get('pedidoAlterado')
     usuario=data.get('usuario')
-    alteracoes=f'{p['pedido']}, '
+    alteracoes=f'{p["pedido"]}, '
     preco = db.execute(
         'SELECT comanda,preco,quantidade,extra,pedido FROM pedidos WHERE id = ?', p['id'])
     if preco : 
@@ -679,9 +679,9 @@ def handle_atualizar_pedidos(data):
             alteracoes+=f'{key} de {p2[key]} para {p[key]} '
         print(alteracoes)
         db.execute("UPDATE pedidos SET comanda = ?, pedido = ?, quantidade = ?, extra = ?,preco = ? WHERE id = ?",
-               p['comanda'], p['pedido'], p['quantidade'], p['extra'], p['preco'], p['id'])
+               p["comanda"], p["pedido"], p["quantidade"], p["extra"], p["preco"], p["id"])
     insertAlteracoesTable('pedidos',alteracoes,'editou','Tela Pedidos',usuario)
-    handle_get_cardapio(str(p['comanda']))
+    handle_get_cardapio(str(p["comanda"]))
 
 
 @socketio.on('desfazer_pagamento')
@@ -855,7 +855,7 @@ def atualizar_estoque_geral(data):
         if quantidadeAnterior: anterior=quantidadeAnterior[0]['quantidade']
         db.execute('UPDATE estoque_geral SET quantidade = ? WHERE item = ?',
                    float(quantidade), item)
-        insertAlteracoesTable('estoque geral',f'{i['item']} de {int(anterior)} para {i['quantidade']}','editou','Editar Estoque Geral',usuario)
+        insertAlteracoesTable('estoque geral',f'{i["item"]} de {int(anterior)} para {i["quantidade"]}','editou','Editar Estoque Geral',usuario)
         
     getEstoqueGeral(True)
 
@@ -872,7 +872,7 @@ def atualizar_estoque(data):
         if quantidadeAnterior:anterior=quantidadeAnterior[0]['quantidade']
         db.execute('UPDATE estoque SET quantidade = ? WHERE item = ?',
                    float(quantidade), item)
-        insertAlteracoesTable('estoque carrinho',f'{i['item']} de {int(anterior)} para {i['quantidade']}','editou','Editar Estoque',usuario)
+        insertAlteracoesTable('estoque carrinho',f'{i["item"]} de {int(anterior)} para {i["quantidade"]}','editou','Editar Estoque',usuario)
         
         
     getEstoque(True)
@@ -904,7 +904,7 @@ def atualizar__comanda(data):
                 db.execute(
                     'UPDATE estoque SET quantidade = quantidade + ? WHERE item = ?', quantidade_total, item)
                 
-                insertAlteracoesTable('estoque carrinho',f'{i['pedido']} {i['quantidade']}','editou','Editar Comanda',usuario)
+                insertAlteracoesTable('estoque carrinho',f'{i["pedido"]} {i["quantidade"]}','editou','Editar Comanda',usuario)
 
 
             db.execute(
@@ -933,7 +933,7 @@ def atualizar__comanda(data):
                 if verifEstoq:
                     db.execute(
                         'UPDATE estoque SET quantidade = quantidade + ? WHERE item = ?', quantidade_atualizada, item)
-                    insertAlteracoesTable('estoque carrinho',f'{i['pedido']} {i['quantidade']}','editou','Editar Comanda',usuario)
+                    insertAlteracoesTable('estoque carrinho',f'{i["pedido"]} {i["quantidade"]}','editou','Editar Comanda',usuario)
                 for k in ids:
                     if quantidade_atualizada > 0:
                         print(f'quantidade atualizada {quantidade_atualizada}')
@@ -956,7 +956,7 @@ def atualizar__comanda(data):
                 if verifEstoq:
                     db.execute(
                         'UPDATE estoque SET quantidade = quantidade - ? WHERE item = ?', quantidade_atualizada, item)
-                    insertAlteracoesTable('estoque carrinho',f'{i['pedido']} {i['quantidade']}','editou','Editar Comanda',usuario)
+                    insertAlteracoesTable('estoque carrinho',f'{i["pedido"]} {i["quantidade"]}','editou','Editar Comanda',usuario)
 
             db.execute('''
                             DELETE FROM pedidos

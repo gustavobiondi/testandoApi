@@ -37,7 +37,7 @@ export const usePushNotifications = () => {
       }
 
       token = await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+        projectId: '7e480f65-cc6b-476f-b57d-270e50206802',
       });
 
       if (Platform.OS === "android") {

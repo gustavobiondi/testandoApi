@@ -59,7 +59,7 @@ function HomeStack() {
   );
 }
 
-function analytcsStack(){
+function AnalytcsStack(){
   return (
     <TabTop.Navigator initialRouteName="Analytics">
       <TabTop.Screen  
@@ -114,7 +114,7 @@ function AuthNavigator() {
             <Drawer.Screen name="Cardapio" component={ScreenCardapio}/>
             <Drawer.Screen name="Estoque Carrinho" component={EstoqueScreen} />
             <Drawer.Screen name="Estoque Geral" component={EstoqueGeral} />
-            <Drawer.Screen name="AnalyticsStack" component={analytcsStack} />
+            <Drawer.Screen name="AnalyticsStack" component={AnalytcsStack} />
             <Drawer.Screen name="Users" component={ChoseUser} />
             <Drawer.Screen name="Cadastrar" component={Cadastro} />
     
