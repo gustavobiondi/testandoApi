@@ -140,7 +140,8 @@ function AuthNavigator() {
 }
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import NotificacaoInfo from './notificacaoInfo.js';
 
 export default function App() {
-  return <TokenScreen />;
+  return <NotificacaoInfo/>;
 }

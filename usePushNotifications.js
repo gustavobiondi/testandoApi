@@ -20,45 +20,44 @@ export const usePushNotifications = () => {
   const responseListener = useRef();
 
   async function registerForPushNotificationAsync() {
-    let token;
-
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== "granted") {
-        alert('Failed to get the push token!');
-        return;
-      }
-
-      token = await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas?.projectId,
-      });
-
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("default", {
-          name: "default",
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#FF231F7C",
-        });
-      }
-
-      return token.data;
-    } else {
+    if (!Device.isDevice) {
       console.error("ERROR: Use um dispositivo real, o simulador não funciona para push notifications.");
+      return;
     }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      alert('Failed to get the push token!');
+      return;
+    }
+
+    const token = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    });
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    return token; // 🔁 Retorna o objeto completo { type, data }
   }
 
   useEffect(() => {
     registerForPushNotificationAsync().then((token) => {
       if (token) {
-        setExpoPushToken(token);
+        setExpoPushToken(token); // ⬅️ Agora expoPushToken terá .data
       }
     });
 
@@ -70,7 +69,6 @@ export const usePushNotifications = () => {
       console.log(response);
     });
 
-    // Limpeza dos listeners
     return () => {
       if (notificationListener.current) {
         Notifications.removeNotificationSubscription(notificationListener.current);

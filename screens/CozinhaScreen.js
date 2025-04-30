@@ -2,7 +2,6 @@ import React from 'react';
 import { View, FlatList, Text, StyleSheet, Button, RefreshControl, } from 'react-native';
 import io from 'socket.io-client';
 import { API_URL } from "./url";
-import notifee from "@notifee/react-native"
 
 export default class Cozinha extends React.Component {
   constructor(props) {

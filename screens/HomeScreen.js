@@ -4,7 +4,6 @@ import io from 'socket.io-client';
 import { UserContext } from '../UserContext'; // Import the context
 import { API_URL } from "./url";
 import { Keyboard } from 'react-native';
-import notifee from "@notifee/react-native"
 import { usePushNotifications } from '../usePushNotifications';
 import NotificacaoInfo from '../notificacaoInfo';
 
