@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:643315113321:android:7194038224c3ca9dea71f8",
+        "mobilesdk_app_id": "1:643315113321:android:fa353190f33586b3ea71f8",
         "android_client_info": {
-          "package_name": "com.gbiondi.nossopoint"
+          "package_name": "com.gbiondinova.nossopoint"
         }
       },
       "oauth_client": [],

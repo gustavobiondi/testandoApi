@@ -19,7 +19,7 @@ from io import BytesIO
 import logging
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 import subprocess
-
+import requests
 
 
 var = True

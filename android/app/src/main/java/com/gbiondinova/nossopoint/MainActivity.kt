@@ -1,4 +1,4 @@
-package com.gbiondi.nossopoint
+package com.gbiondinova.nossopoint
 
 import android.os.Build
 import android.os.Bundle
