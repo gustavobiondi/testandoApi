@@ -450,8 +450,7 @@ export default class HomeScreen extends React.Component {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.innerContainer}>
           <View style={styles.inputRow}>
-          <NotificacaoInfo />
-
+            <NotificacaoInfo/>
               <TextInput
                 placeholder="Comanda"
                 onChangeText={this.changeComanda}

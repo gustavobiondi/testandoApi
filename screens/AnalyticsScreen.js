@@ -1,11 +1,9 @@
 import React from "react";
-import { View, Text, ScrollView, RefreshControl, StyleSheet,Image } from "react-native";
+import { View, Text, ScrollView, RefreshControl, StyleSheet,Button,TouchableOpacity } from "react-native";
 import { UserContext } from "../UserContext";
 import { API_URL } from "./url";
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { TouchableOpacity } from 'react-native';
 import io from 'socket.io-client';
-import { Button } from "react-native-web";
 
 export default class Analytics extends React.Component {
   static contextType = UserContext;
@@ -23,7 +21,6 @@ export default class Analytics extends React.Component {
       porcao:"",
       pedidos:"",
       restante:"",
-      imagemBase64:null,
       caixinha:"",
       change:0,
     };
@@ -34,7 +31,7 @@ export default class Analytics extends React.Component {
     this.initializeData()
     this.socket.on('faturamento_enviar', (data)=>{
       if (data) {
-        this.setState({ faturamento: data.faturamento, dia: data.dia,faturamento_previsto:data.faturamento_previsto,drink:data.drink,porcao:data.porcao, restante:data.restante,pedidos:data.pedidos,imagemBase64:data.grafico,caixinha:data.caixinha})
+        this.setState({ faturamento: data.faturamento, dia: data.dia,faturamento_previsto:data.faturamento_previsto,drink:data.drink,porcao:data.porcao, restante:data.restante,pedidos:data.pedidos,caixinha:data.caixinha})
         console.log("caixinha", data.caixinha)
       }}
     )
@@ -90,24 +87,6 @@ export default class Analytics extends React.Component {
 
           </View>
         </View>
-        <View style={styles.container}>
-          <View style={styles.dateBox}>
-          {this.state.imagemBase64 && (
-          <View style={{paddingEnd:20}}>
-            <Text style={{fontSize:20}}>Grafico Porcentagem Faturamento</Text>
-          <Image
-            source={{uri:`${API_URL}/static/grafico.png?${new Date().getTime()}`}} 
-            style={{ width: 350, height: 350,paddingEnd:20}}
-            resizeMode="contain"
-          />
-        </View>
-        )}
-            
-          </View>
-
-        </View>
-
-
       </ScrollView>
     );
   }

@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { API_URL } from "./url";
 import { Button } from "react-native-web";
 
-export default class coWorksScreen extends React.Component{
+export default class CoWorksScreen extends React.Component{
 constructor(props){
     super(props)
     this.state={
