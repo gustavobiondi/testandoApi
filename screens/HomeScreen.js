@@ -4,8 +4,8 @@ import io from 'socket.io-client';
 import { UserContext } from '../UserContext'; // Import the context
 import { API_URL } from "./url";
 import { Keyboard } from 'react-native';
-import { usePushNotifications } from '../usePushNotifications';
 import NotificacaoInfo from '../notificacaoInfo';
+import debounce from 'lodash.debounce';
 
 
 
@@ -42,6 +42,7 @@ export default class HomeScreen extends React.Component {
       quantidadeRestanteMensagem: null,
       pedidoRestanteMensagem: null,
     };
+    this.processarPedido = debounce(this.processarPedido.bind(this), 200);
   }
 
   componentDidMount() { 
@@ -130,27 +131,36 @@ export default class HomeScreen extends React.Component {
 
 
   changePedido = (pedid) => {
-    const pedido = String(pedid).toLowerCase()
-    this.setState({pedido,showPedido: !!pedido,selecionaveis:[],selecionados:[],options:[]});
-    if (pedido.startsWith('.') && pedido.length>1){
-      const pedidoSemPonto = pedido.slice(1)
-      const dataPesquisado = this.state.dataFixo.filter(item=>String(item.id)===pedidoSemPonto)
-      if (dataPesquisado){
-        this.setState({pedido_filtrado:dataPesquisado})
-      }
-    }
-    else if (pedido && this.state.dataFixo){
-      const dataPesquisado = this.state.dataFixo.filter(item=>item.item.toLowerCase().startsWith(pedido))
-      if (dataPesquisado){
-      this.setState({pedido_filtrado:dataPesquisado})
-      }
-    }
-    else if (!pedido){
-      this.setState({pedido_filtrado:this.state.dataFixo})
-    }
-    
+    const pedido = String(pedid).toLowerCase();
+
+    this.setState({
+      pedido,
+      showPedido: !!pedido,
+      selecionaveis: [],
+      selecionados: [],
+      options: []
+    });
+
+    this.processarPedido(pedido);
   };
-  
+
+  processarPedido(pedido) {
+    let pedido_filtrado = [];
+
+    if (pedido.startsWith('.') && pedido.length > 1) {
+      const pedidoSemPonto = pedido.slice(1);
+      pedido_filtrado = this.state.dataFixo.filter(item => String(item.id) === pedidoSemPonto);
+    } else if (pedido) {
+      pedido_filtrado = this.state.dataFixo.filter(item =>
+        item.item.toLowerCase().startsWith(pedido)
+      );
+    } else {
+      pedido_filtrado = this.state.dataFixo;
+    }
+
+    this.setState({ pedido_filtrado });
+  }
+    
   getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
   verificarExistenciaPedidos(pedido){

@@ -1,45 +1,60 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Platform, Alert } from 'react-native';
+import { useContext, useEffect, useState } from 'react';
+import { UserContext } from './UserContext';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import Telas from './Telas';
-
+import { Platform, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from './screens/url';
 
 export default function App() {
+  const { user } = useContext(UserContext);
   const [token, setToken] = useState(null);
 
   useEffect(() => {
     async function getToken() {
-      console.log('🔍 Iniciando processo de obter token...');
-      if (!Device.isDevice) {
-        Alert.alert('Erro', 'Push Notifications só funcionam em dispositivo físico');
+      if (!Device.isDevice || !user?.username) {
+        // Se não for dispositivo físico ou não tiver usuário logado
         return;
       }
 
+      // Verifique se o token já está salvo no AsyncStorage
+      const savedToken = await AsyncStorage.getItem(`pushToken_${user.username}`);
+      if (savedToken) {
+        console.log('🔍 Token encontrado no AsyncStorage:', savedToken);
+        setToken(savedToken);
+        return; // Já tem token, não precisa gerar um novo
+      }
+
+      // Se não encontrou no AsyncStorage, solicita um novo
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      console.log('🔍 Permissão existente:', existingStatus);
       let finalStatus = existingStatus;
 
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
-        console.log('🔍 Nova permissão:', status);
         finalStatus = status;
       }
 
       if (finalStatus !== 'granted') {
-        Alert.alert('Permissão negada', 'Você precisa permitir notificações para receber push.');
+        Alert.alert('Permissão negada');
         return;
       }
 
-      try {
-        const tokenData = await Notifications.getExpoPushTokenAsync();
-        console.log('✅ Token obtido:', tokenData.data);
-        setToken(tokenData.data);
-      } catch (e) {
-        console.error('❌ Erro ao obter token:', JSON.stringify(e, null, 2));
-        Alert.alert('Erro', e.message ?? 'Não foi possível obter o token');
-      }
-      
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      setToken(tokenData.data);
+
+      // Salve o token no AsyncStorage
+      await AsyncStorage.setItem(`pushToken_${user.username}`, tokenData.data);
+
+      // Envie o token para o servidor
+      await fetch(`${API_URL}/salvar-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          cargo:user.cargo,
+          pushToken: tokenData.data
+        })
+      });
 
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
@@ -50,7 +65,7 @@ export default function App() {
     }
 
     getToken();
-  }, []);
+  }, [user]); // Executa só depois que o usuário for carregado
 
-  return (<Telas/>);
+  return <Telas />;
 }
