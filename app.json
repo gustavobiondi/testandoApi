@@ -21,9 +21,11 @@
       "autoIncrement": true,
       "supportsTablet": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPushNotificationUsageDescription": "Este aplicativo usará notificações para alertar o usuário quando um novo pedido for enviado.",
+        "UIBackgroundModes": ["remote-notification"]
       }
-    },
+    },  
     "android": {
       "package": "com.gbiondinova.nossopoint",
       "googleServicesFile": "./android/app/google-services.json",
@@ -33,9 +35,7 @@
       },
       "useNextNotificationsApi": true
     },
-    "plugins": [
-      "expo-notifications"
-    ],
+    "plugins": ["expo-notifications"],
     "extra": {
       "eas": {
         "projectId": "7e480f65-cc6b-476f-b57d-270e50206802"
